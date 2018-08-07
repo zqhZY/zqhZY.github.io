@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<!-- Head tag -->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+  <!--Description-->
+  
+
+  <!--Author-->
+  
+  <meta name="author" content="Zico">
+  
+
+  <!--Open Graph Title-->
+  
+      <meta property="og:title" content="DNN声学建模笔记"/>
+  
+  <!--Open Graph Description-->
+  
+  <!--Open Graph Site Name-->
+  <meta property="og:site_name" content="A Note"/>
+  <!--Type page-->
+  
+      <meta property="og:type" content="article" />
+  
+  <!--Page Cover-->
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <!-- Title -->
+  
+  <title>DNN声学建模笔记 - A Note</title>
+
+
+  <link rel="shortcut icon" href="https://hexo.io/icon/favicon-96x96.png">
+
+  <!-- Custom CSS/Sass -->
+  <link rel="stylesheet" href="/css/style.css">
+
+  <!----------------------------
+  https://github.com/GallenHu/hexo-theme-Daily
+
+ _____            _   _
+|  __ \          (_) | |
+| |  | |   __ _   _  | |  _   _
+| |  | |  / _` | | | | | | | | |
+| |__| | | (_| | | | | | | |_| |
+|_____/   \__,_| |_| |_|  \__, |
+                          __/ |
+                         |___/
+
+    --------------------------->
+
+</head>
+
+
+<body>
+
+  <!-- Nav -->
+  <header class="site-header">
+  <div class="header-inside">
+    <div class="logo">
+      <a href="/" rel="home">
+        
+        <img src="https://hexo.io/logo.svg" alt="A Note" height="60">
+        
+      </a>
+    </div>
+    <!-- Navigation -->
+    <nav class="navbar">
+      <!-- Collect the nav links, forms, and other content for toggling -->
+      <div class="collapse">
+        <ul class="navbar-nav">
+          
+          
+            <li>
+              <a href="/.">
+                
+                  Home
+                
+              </a>
+            </li>
+          
+            <li>
+              <a href="/archives">
+                
+                  Archive
+                
+              </a>
+            </li>
+          
+        </ul>
+      </div>
+      <!-- /.navbar-collapse -->
+    </nav>
+    <div class="button-wrap">
+      <button class="menu-toggle">Primary Menu</button>
+    </div>
+  </div>
+</header>
+
+
+  <!-- Main Content -->
+  <div class="content-area">
+  <div class="post">
+    <!-- Post Content -->
+    <div class="container">
+      <article>
+        <!-- Title date & tags -->
+        <div class="post-header">
+          <h1 class="entry-title">
+            DNN声学建模笔记
+            
+          </h1>
+          <p class="posted-on">
+          2017-04-09
+          </p>
+          <div class="tags-links">
+            
+              
+                <a href="/tags/ASR/" rel="tag">
+                  ASR
+                </a>
+              
+                <a href="/tags/DNN/" rel="tag">
+                  DNN
+                </a>
+              
+            
+          </div>
+        </div>
+        <!-- Post Main Content -->
+        <div class="entry-content has_line_number">
+          <p><a href="http://research.google.com/pubs/archive/38131.pdf" target="_blank" rel="noopener"> 原文：Deep Neural Networks for Acoustic Modeling in Speech Recognition</a><br>DNN 包含多个隐层和大数量的输出单元，这适应了大量的HMM状态（由多个不同的三音节HMM状态建模产生，即同时考虑了音素及其两侧。）。即使大多数三音节HMM被绑定在一起，仍有成千的被绑定的状态。<br><a id="more"></a><br>论文介绍了使用DNN的两个阶段：</p>
+<ul>
+<li>通过拟合一堆生成模型（RBM）来初始化多个特征检测层（一次初始化一层），每个生成模型具有一层潜在变量（atent variables）。训练这些模型不需要HMM状态的任何信息，而这些状态信息是声学模型所需（用来区分）。</li>
+<li>第一步的每个生成模型用于初始化DNN中的相应层的隐藏单元(hidden units)，然后对整个网络进行区别地微调（discriminatively fine-tuned）以预测目标HMM状态（target）。这些target通过GMM-HMM模型进行强制对齐获得。</li>
+</ul>
+<h4 id="训练深度神经网络"><a href="#训练深度神经网络" class="headerlink" title="训练深度神经网络"></a>训练深度神经网络</h4><p>深层神经网络（DNN）是一种向前反馈的人工神经网络，在其输入和其输出层之间具有多于一层的隐藏单元。一层隐层，每层两个神经单元的神经网络：<br><img src="http://obbk6qj92.bkt.clouddn.com/neural_network-7.png" alt="neural_network"><br>每个隐层单元(j)通常用logistc函数来映射前一层的总的输入$ x_j $，计算出$ y_j$作为下层的输入。<br>$$ y_j = logistic(x_i) = \frac{1}{1+{\rm e}^{x_i}}   \qquad, \quad  x_j = b_j +  \sum_{i} y_jw_{ij} $$<br>$b_j$是神经单元 j 的偏差，i 是前一层的标示，$w_{ij}$是从前一层单元i，连接单元j的权重。单个神经元示意图：<br><img src="http://obbk6qj92.bkt.clouddn.com/neural.png" alt="single neural"></p>
+<p>对于多类别分类应用，通过softmax函数，输出单元j，将所有的输入$x_j$转化成某类的概率$p_j$。</p>
+<p>对于大的训练集，在与梯度成比例地更新权重之前，在小的，随机的“小批量”训练集而不是整个训练集上计算导数通常更有效。 这种随机梯度下降法可以通过使用“动量”系数（0 &lt;α&lt;1）来进一步改进，该系数使对于小批量t计算的梯度更加平滑，从而加速梯度下降速度。小批量训练集示意图，Mini-batch的组合往往是随机的：</p>
+<p><img src="http://obbk6qj92.bkt.clouddn.com/minibatch.png" alt="minibatch"></p>
+<p> 而偏差的更新规则可以通过将它们视为来自单元的连接上的权重来导出，通常总是1。<br>为了减少过度拟合，大权重可以与它们的平方幅度成比例地加罚项，或者学习训练可以在验证集上的性能开始变坏的点处提前终止。 在相邻层之间具有完全连通性的DNN中，初始权重会被给予小随机值，以防止层中的所有隐藏单元获得完全相同的梯度。<br><img src="http://obbk6qj92.bkt.clouddn.com/stop.png" alt="early stop"></p>
+<p>具有许多隐藏层的DNN优化起来十分困难，从原点附近的随机起点开始梯度下降不是找到一组好的权重的最好方法。另外除非仔细选择权重的初始值，反向传播的梯度在不同层中将具有非常不同的幅度。</p>
+<p>除了优化问题，DNN可能不适合泛化测试数据。 具有许多隐藏层并且每层有许多神经单元的DNN，往往是伴随着大量参数并且非常灵活的模型。这使得DNN具有复杂的建模能力，以及输入输出之间有高度的非线性关系。这种能力对于高质量声学建模非常重要，但是这同时会对训练集中偶然出现的个例（如噪声）进行建模，导致严重的过拟合。</p>
+<p> 权重罚项或早期停止可以减少过度拟合，但是往往以牺牲建模能力为代价。非常大的训练集可以减少过度拟合，同时保持建模能力，但对计算能力有很大要求。我们需要一个更好的方法通过训练集信息构建多层非线性特征检测器（feature detectors ）。</p>
+<h5 id="A-生成预训练（pre-training）"><a href="#A-生成预训练（pre-training）" class="headerlink" title="A. 生成预训练（pre-training）"></a>A. 生成预训练（pre-training）</h5><p> 暂不考虑构建一个可以区别分类的特征检测器，我们先考虑构建特征检测器使其能对输入数据的结构进行建模。方法是一次学习一层的神经网路层（训练参数参数），其中一层的状态作为下一层的训练数据。在这种生成“预训练”之后，我们得到了神经网路的初始权重，然后再通过DNN的反向传播算法进行微调。生成性预训练产生的一些高级特征对于区分类别没有什么用处，但是比原始输入更有用。生成性预训练找到一个权重空间，可以使微调快速进行，并且显著减少过度拟合。</p>
+<p>可以通过将具有一层隐藏变量的生成模型拟合到输入数据来学习单层特征检测器（feature detectors ）。有两大类生成模型可供选择:</p>
+<ul>
+<li>有向模型首先从先验分布( prior distribution)中选择潜在变量的状态，然后从给定潜在状态的条件分布中选择可观察变量的状态来生成数据。</li>
+<li><strong>无向模型</strong>有一种非常不同的生成数据的方式。不是使用一组参数来定义潜在变量上的先验分布，而是使用单独的参数集来定义给定潜在变量的值的可观察变量的条件分布。无向模型使用单个参数集<strong>W</strong>，通过能量函数定义观测变量取值向量   <strong>v</strong>， 隐层变量取值向量 <strong>h</strong> 的联合概率。能量方程E ：</li>
+</ul>
+<p>$$ p(v, h; W) = \frac{1}{Z}{\rm e}^{-E(v, h; W)} \quad , Z =  \sum_{v’, h’} {\rm e}^{-E(v’, h’; W)} \qquad  \qquad  (5)$$</p>
+<p>如果许多不同的隐藏变量非线性交互生成每个数据向量，由于“explaining away”的现象，在定向模型中难以从观测数据推断隐藏变量的状态。然而在无向模型中，只要潜在变量没有连接它们的边，推理就变得很容易。这种受限的无向模型对于分层预训练是理想的，因为每个层将具有容易的推理过程。</p>
+<p>我们首先描述受限玻尔兹曼机（RBM）的近似学习算法，RBM包含一层二值可见（visible）单元，代表二值输入数据，这些可见单元连接到一层随机的二值隐藏单元（ that learn to model significant non-independencies between the visible units）。在可见单元和隐藏单元之间有无向连接，可见单元之间和隐藏单元之间不存在连接。<br><img src="http://obbk6qj92.bkt.clouddn.com/RBM.png" alt="RBM"></p>
+<p>RBM是一种马尔可夫随机场（MRF），但是在几个方面与大多数MRF不同：</p>
+<ul>
+<li>具有二分连通图;</li>
+<li>它通常不在不同单位之间共享权重</li>
+<li>即使在训练期间，变量的子集也是不可见的。</li>
+</ul>
+<h5 id="B-RBM的有效学习过程"><a href="#B-RBM的有效学习过程" class="headerlink" title="B.  RBM的有效学习过程"></a>B.  RBM的有效学习过程</h5><p> RBM的可见和隐藏单元组合（<strong>v</strong> ， <strong>h</strong>）的能量方程可以表示为：<br> $$ E(v, h) = - \sum_{i \in visible}{a_iv_i} - \sum_{j \in hidden}{b_jh_j} - \sum_{i , j}{v_ih_jw_{ij}}   \qquad \qquad  (6)$$</p>
+<p>  其中$v_i , h_j$分别是可见单元 <strong>i</strong>  以及隐藏单元 <strong>j</strong> 二值状态，$a_i , b_j$ 是他们的偏差， $w_{ij}$是他们之间的权重。网络通过该能量函数向可见和隐性向量的可能对(pair)计算概率，如等式5。由联合概率分布关于观测数据向量<strong>v</strong> 的边缘分布（也叫似然函数）可以表示为：<br>$$ p(v) =  \frac{1}{Z}\sum_{ h} {\rm e}^{-E(v, h)} \qquad  \qquad\qquad  \qquad  (7)$$</p>
+<p>  类似也可以得到隐藏数据向量<strong>h</strong> 的似然函数。这样训练集的对数概率分布对于权重的导数出奇地简单：<br>  $$ \frac{1}{N}\sum_{n = 1}^{n = N}{\frac{\mathrm{d}logp(v^n)}{\mathrm{d}w_{ij}}} = &lt;v_ih_j&gt;_{data} - &lt;v_ih_j&gt;<em>{model}  \qquad \qquad   (8)$$<br>其中N是训练集的大小，尖括号用于表示由下标所指定的数据分布下的期望值。方程8 中简单的导数，得到一个非常简单的学习规则，在训练数据的对数概率中执行最陡的随机梯度上升：<br>$$\Delta w</em>{ij} = \epsilon (&lt;v_ih_j&gt;_{data} - &lt;v_ih_j&gt;_{model} ) \qquad \qquad (9)$$</p>
+<p>其中的$\epsilon$是学习速率（ learning rate.）。</p>
+<p>在RBM中的隐藏单元之间不存在直接连接，使得$&lt;v_ih_j&gt;_{data}$的无偏差样本非常容易获得。 给定随机选择的训练样本<strong>v</strong>，每个隐藏单元 <strong>j</strong> 的二进制状态 $h_j$ 为1的概率为：<br>$$ p(h_j = 1 |   v) = logistic(b_j + \sum_{i}{v_iw_{ij}})  \qquad \qquad  (10)$$</p>
+<p>$v_ih_j$是无偏差样本。<br>在RBM中的可见单元之间不存在直接连接，使得可见单元的状态的无偏样本非常容易获得，给定隐藏向量<br>$$ p(v_i = 1 |   h) = logistic(a_i + \sum_{j}{h_jw_{ij}})  \qquad \qquad  (11)$$</p>
+<p>然而，获得$&lt;v_ih_j&gt;_{model}$模型的无偏差样本要困难得多。这可以通过在可见单元的任何随机状态开始并且执行长时间交替Gibbs采样来完成。交替Gibbs采样使用等式10并行地更新所有隐藏单元，随后使用等式11并行地更新所有可见单元。</p>
+<p> 另一种被称为“对比发散”（CD）的更快的学习过程，该算法将可见单元的状态设置为训练向量作为开始，之后使用等式10并行地计算隐藏单元的二进制状态，并以等式11给出的概率将每个$v_i$设置为1来进行重构（reconstruction）。最终，再次更新隐藏单元的状态。 权重的变化可以表示为：<br> $$\Delta w_{ij} = \epsilon (&lt;v_ih_j&gt;_{data} - &lt;v_ih_j&gt;_{recon} ) \qquad \qquad (12)$$</p>
+<p>简化后的相同学习规则可以用在偏差上，这种规则使用独立单元的状态（隐层或显层状态）而不是使用成对状态。<br>即使只是粗略地近似训练数据的对数概率的梯度，对比发散算法也表现出良好性能。如果在收集学习规则中的第二项的统计之前使用更多步骤的交替Gibbs采样，RBM会学习到更好的生成模型。但是如果以预训练特征检测器为目的，更多的替换通常是没有价值的。并且所有的结果是使用CD获得的，其在隐藏单元的初始更新之后进行了交替Gibbs采样的单个完整步骤。</p>
+<p>为了抑制学习中的噪声，隐藏单元的重建和后续状态通常使用实值概率（real-valued probabilities）而不是二值样本。但使用二值样本进行隐藏状态的第一次计算依然十分重要，因为采样噪声作为正则化器（regularizer），非常有效地防止过拟合。</p>
+<h5 id="C-建模实值（real-valued）数据"><a href="#C-建模实值（real-valued）数据" class="headerlink" title="C. 建模实值（real-valued）数据"></a>C. 建模实值（real-valued）数据</h5><p>诸如MFCC的实值数据往往可以由具有高斯噪声的线性变量建模，可以修改RBM能量函数对这些变量建模，由此给出高斯-伯努利RBM（GRBM）：<br> $$ E(v, h) = - \sum_{i \in vis}{\frac{(v_i-a_i)^2}{2\sigma_i^2}} - \sum_{j \in hid}{b_jh_j} - \sum_{i , j}{\frac{v_i}{\sigma_i}h_jw_{ij}}   \qquad \qquad  (13)$$</p>
+<p>其中$\delta_i$是可见单元<strong>i</strong>的高斯噪声的标准方差，用于CD的两个条件分布为：<br>$$ p(h_j  |   v) = logistic(b_j + \sum_{i}{\frac{v_i}{\sigma_i}w_{ij}})  \qquad \qquad \qquad  (14)$$</p>
+<p>$$p (v_i|h) = N (a_i + \sigma_i \sum_{j}{h_jw_{ij}},  \sigma_i^2) \qquad \qquad  \qquad (15)$$</p>
+<p>其中N（μ，$σ^2$）是高斯分布。由于引用中描述的原因，学习GRBM的标准方差存在一定问题，因此对于使用CD的预训练，需对数据进行归一化，使得每个系数均值为0，方差为1。在计算p(<strong>v | h</strong>)时，将标准差设置为1，并且在重建（reconstructions）程中不添加噪声。这避免了<strong>deciding the right noise level</strong>的问题。</p>
+<h5 id="堆叠RBM形成深信念网络"><a href="#堆叠RBM形成深信念网络" class="headerlink" title="堆叠RBM形成深信念网络"></a>堆叠RBM形成深信念网络</h5><p>在对数据训练RBM之后，被推测出的隐藏单元状态可以用作训练另一个RBM的数据，该RBM通过学习对第一次的RBM的隐藏单元之间的相关性进行建模。根据需要多次重复该过程，以产生多层非线性特征检测器，逐渐可以表示数据中更复杂的统计结构。这样多个RBM堆叠在一起组合成了单个多层的生成模型：深度置信网（DBN）。虽然每个RBM是非定向模型，但整个堆叠形成的DBN是混合生成模型，其顶部两层是非定向的（它们是堆叠过程中最后的RBM），但是其下层具有自顶向下的定向连接：<br><img src="http://obbk6qj92.bkt.clouddn.com/DBN.png" alt="DBN Generation"></p>
+<blockquote>
+<p>图中操作序列用于创建具有三个隐藏层的DBN并将其转换为预训练后的DBN-DNN。 首先，训练GRBM以对实值声学系数的帧窗口进行建模。然后，GRBM的二值隐藏单元的状态被用作于训练接下来的RBM输入数据。 该过程可根据需要重复以创建尽可能多的隐藏层。然后通过由自顶向下的定向连接替换低级RBM的无向连接，将RBM的堆叠转换为单生个成模型DBN（反向传播微调参数）。最后，通过添加“softmax”输出层来创建预训练的DBN-DNN，<strong>该输出层包含每个HMM的每个可能状态的单元</strong>。然后区别性地训练DBN-DNN，以预测输入窗口的中心帧相对应的HMM状态（in a forced alignment）。</p>
+</blockquote>
+<p>为了理解RBM如何组成一个DBN，我们重写公式7，并且明确对$W$的依赖：<br>$$ p(v; W) = \sum_{h}{p(h; W)p(v|h; W)}   \qquad \qquad \qquad  (16)$$</p>
+<p>其中p(<strong>h; W</strong>)如等式7中所定义，但是要互换可见单元<strong>v</strong>和隐藏单元<strong>h</strong>。现在清楚的是，可以通过在训练RBM后保持p（<strong>v | h; W</strong>）不变来优化模型，但用更好的先验来替换隐藏向量的先验概率p（<strong>h; W</strong>），例如该先验更接近于聚集后的隐藏向量（can be sampled by first picking a training case）的后验，并随后用等式14推断隐藏向量。这个聚合的后验正是在堆叠中的下一个RBM训练建模的数据。</p>
+<p>如[22]所示，训练数据的对数概率存在一系列变分边界（ variational bounds），此外，每次将新的RBM添加到堆栈中时，新的和更深的DBN上的变分界限（ variational bounds）优于 先前的变分边界（ variational bounds），前提是新的RBM以正确的方式初始化和学习。 虽然数学上存在一个持续改进的约束，但它能解决本文中提到的实际问题，即训练好的特征检测器是否可用于在训练DBN时对未知的任务的进行区分。同样不能保证当我们使用类似CD这些快捷办法时，训练效果得到改进。</p>
+<p>DBN有别于其他多层，有向，非线性生成模型的一个非常好的特性是：可以在单个正向传递中推断隐藏单元的层的状态。在推导变分边界中使用的这种推断虽然不完全正确，但相当准确。因此，在通过训练一堆RBM来学习DBN之后，我们可以抛弃整个概率框架，简单地使用反向生成的权重初始化前向反馈（feed-forward）DNN的所有特征检测层。然后我们添加最终的softmax层并有区别训练整个DNN。</p>
+<h5 id="E-连接DNN与HMM"><a href="#E-连接DNN与HMM" class="headerlink" title="E .连接DNN与HMM"></a>E .连接DNN与HMM</h5><p>已被区分地微调后的DNN的输出的概率可以表示为p（<strong>HMMstate | AcousticInput</strong>）。但是为了计算维特比对齐或者在HMM框架内运行前向-后向算法，我们需要似然概率 p（<strong>AcousticInput | HMMstate</strong>）。 通过将DNN输出的后验概率除以用于微调DNN的强制对齐中的HMM状态的频率，可以将DNN输出的后验概率转换为缩放后的似然度。<br>$$p(AInput_t | Hstate_t) = p(Hstate_t | AInput_t) p(AInput_t)/p(Hstate_t)$$<br>以这种方式产生的所有似然度由相同的未知因子p（<strong>AInput</strong>）缩放，但这对对齐没有影响。虽然这种转换似乎对一些识别任务几乎没有影响，但是对于训练标签高度不平衡（例如，输入语音中包含许多静默帧）的任务来说，是比较重要的。</p>
+<h4 id="参考链接"><a href="#参考链接" class="headerlink" title="参考链接"></a>参考链接</h4><p><a href="https://www.slideshare.net/tw_dsconf/ss-62245351" target="_blank" rel="noopener">一天搞懂深度学习</a><br><a href="https://mattmazur.com/2015/03/17/a-step-by-step-backpropagation-example/" target="_blank" rel="noopener">神经网路反向传播例子</a><br><a href="http://blog.csdn.net/itplus/article/details/19168937" target="_blank" rel="noopener"> 受限玻尔兹曼机（RBM）学习笔记</a><br><a href="http://www.cslu.ogi.edu/~zak/cs506-lvr/mjfg_NOW.pdf" target="_blank" rel="noopener">The Application of Hidden Markov Models in Speech Recognition</a><br><a href="https://www.semanticscholar.org/paper/Context-Dependent-Pre-Trained-Deep-Neural-Networks-Dahl-Yu/39f63dbdce9207b87878290c0e3983e84cfcecd9" target="_blank" rel="noopener">Context-Dependent Pre-Trained Deep Neural Networks for Large-Vocabulary Speech Recognition</a></p>
+
+        </div>
+      </article>
+    </div>
+    <!-- Comments -->
+    <div class="container">
+      
+<section id="comment">
+  <!-- <h1 class="title">留言</h1> -->
+
+  
+</section>
+
+
+    </div>
+    <!-- Pre or Next -->
+    <div class="nav-links">
+      
+        <div class="nav-previous">
+          <a href="/2017/05/01/神经网络：文本分类/" rel="prev"><span class="meta-arraw meta-arraw-left"></span> 上一页</a>
+        </div>
+      
+      
+        <div class="nav-next">
+          <a href="/2017/04/01/ASR-DNN训练/" rel="prev">下一页 <span class="meta-arraw meta-arraw-right"></span></a>
+        </div>
+      
+    </div>
+
+  </div>
+</div>
+
+
+  <!-- Footer -->
+  <!-- Footer-widgets -->
+<div class="footer-widgets">
+  <div class="row inside-wrapper">
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">关于本站</h1>
+        <div class="custom-widget-content">
+          
+          <p align="left">分享日常学习，传播核心价值观，传播正能量。</p>
+        </div>
+      </aside>
+    </div>
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">与我联系</h1>
+        <div class="widget-text">
+          
+            
+              <a href="https://github.com/zqhZY" class="icon icon-github" target="_blank">github</a>
+            
+              <a href="zqingheng@163.com" class="icon icon-mail" target="_blank">mail</a>
+            
+          
+        </div>
+      </aside>
+    </div>
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">站内搜索</h1>
+        <div class="widget-text">
+          <form onSubmit="return appDaily.submitSearch('')">
+            <p>
+              <input type="text" placeholder="search..." id="homeSearchInput">
+            </p>
+            <!-- <input type="submit" value="GO"> -->
+          </form>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+<!-- Footer -->
+<footer class="site-info">
+  <p>
+    <span>A Note &copy; 2018</span>
+    
+      <span class="split">|</span>
+      <span>Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> with Theme <a href="https://github.com/GallenHu/hexo-theme-Daily" target="_blank">Daily</a></span>
+    
+  </p>
+</footer>
+
+
+  <!-- After footer scripts -->
+  <!-- scripts -->
+<script src="/js/app.js"></script>
+
+
+
+
+
+</body>
+
+</html>

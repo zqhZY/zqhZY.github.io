@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<!-- Head tag -->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+  <!--Description-->
+  
+
+  <!--Author-->
+  
+  <meta name="author" content="Zico">
+  
+
+  <!--Open Graph Title-->
+  
+      <meta property="og:title" content="Docker构建Flink集群"/>
+  
+  <!--Open Graph Description-->
+  
+  <!--Open Graph Site Name-->
+  <meta property="og:site_name" content="A Note"/>
+  <!--Type page-->
+  
+      <meta property="og:type" content="article" />
+  
+  <!--Page Cover-->
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <!-- Title -->
+  
+  <title>Docker构建Flink集群 - A Note</title>
+
+
+  <link rel="shortcut icon" href="https://hexo.io/icon/favicon-96x96.png">
+
+  <!-- Custom CSS/Sass -->
+  <link rel="stylesheet" href="/css/style.css">
+
+  <!----------------------------
+  https://github.com/GallenHu/hexo-theme-Daily
+
+ _____            _   _
+|  __ \          (_) | |
+| |  | |   __ _   _  | |  _   _
+| |  | |  / _` | | | | | | | | |
+| |__| | | (_| | | | | | | |_| |
+|_____/   \__,_| |_| |_|  \__, |
+                          __/ |
+                         |___/
+
+    --------------------------->
+
+</head>
+
+
+<body>
+
+  <!-- Nav -->
+  <header class="site-header">
+  <div class="header-inside">
+    <div class="logo">
+      <a href="/" rel="home">
+        
+        <img src="https://hexo.io/logo.svg" alt="A Note" height="60">
+        
+      </a>
+    </div>
+    <!-- Navigation -->
+    <nav class="navbar">
+      <!-- Collect the nav links, forms, and other content for toggling -->
+      <div class="collapse">
+        <ul class="navbar-nav">
+          
+          
+            <li>
+              <a href="/.">
+                
+                  Home
+                
+              </a>
+            </li>
+          
+            <li>
+              <a href="/archives">
+                
+                  Archive
+                
+              </a>
+            </li>
+          
+        </ul>
+      </div>
+      <!-- /.navbar-collapse -->
+    </nav>
+    <div class="button-wrap">
+      <button class="menu-toggle">Primary Menu</button>
+    </div>
+  </div>
+</header>
+
+
+  <!-- Main Content -->
+  <div class="content-area">
+  <div class="post">
+    <!-- Post Content -->
+    <div class="container">
+      <article>
+        <!-- Title date & tags -->
+        <div class="post-header">
+          <h1 class="entry-title">
+            Docker构建Flink集群
+            
+          </h1>
+          <p class="posted-on">
+          2016-11-20
+          </p>
+          <div class="tags-links">
+            
+              
+                <a href="/tags/Flink/" rel="tag">
+                  Flink
+                </a>
+              
+                <a href="/tags/分布式/" rel="tag">
+                  分布式
+                </a>
+              
+                <a href="/tags/docker/" rel="tag">
+                  docker
+                </a>
+              
+            
+          </div>
+        </div>
+        <!-- Post Main Content -->
+        <div class="entry-content has_line_number">
+          <p>Docker是在硬件资源不富裕的的情况下获得集群体验的一个非常不错的方式，本篇文章实现通过docker-compose编排Flink 高可用（HA）模式集群。集群构建两个JobManager和N个TaskManager，JobManager启动后向Zookeeper注册信息，并选举出leader，JobManager的数据备份保存在HDFS上；TaskManager从ZooKeeper上获取leader JobManager并发起注册请求。</p>
+<a id="more"></a>
+<h4 id="镜像构建"><a href="#镜像构建" class="headerlink" title="镜像构建"></a>镜像构建</h4><p>镜像包括Flink、Hadoop、ZooKeeper。镜像Dockerfile整理在<a href="https://github.com/zqhZY/Flink-docker-HA" target="_blank" rel="noopener">Github</a>上，下面分别来看镜像的构建与配置，完整文件可以再<a href="https://github.com/zqhZY/Flink-docker-HA" target="_blank" rel="noopener">这里下载</a>：</p>
+<h5 id="Flink镜像构建"><a href="#Flink镜像构建" class="headerlink" title="Flink镜像构建"></a>Flink镜像构建</h5><p>Flink镜像可以从DockerHub上直接pull下来也可以根据Dockerfile自己构建，这里通过Dockerfile来构建。进到docker-flink目录下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">docker-flink/</span><br><span class="line">├── build.sh</span><br><span class="line">├── docker-compose.yml</span><br><span class="line">├── docker-entrypoint.sh</span><br><span class="line">├── Dockerfile</span><br><span class="line">├── flink-conf.yaml</span><br></pre></td></tr></table></figure></p>
+<p>Dockerfile内容如下：<br><figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">FROM</span> java:<span class="number">8</span>-jre-alpine</span><br><span class="line"></span><br><span class="line"><span class="comment"># Install requirements</span></span><br><span class="line"><span class="keyword">RUN</span> apk add --no-cache bash snappy</span><br><span class="line"></span><br><span class="line"># Configure Flink version</span><br><span class="line">ARG FLINK_VERSION=1.1.1</span><br><span class="line">ARG HADOOP_VERSION=27</span><br><span class="line">ARG SCALA_VERSION=2.11</span><br><span class="line"></span><br><span class="line"># Flink environment variables</span><br><span class="line">ARG FLINK_INSTALL_PATH=/opt</span><br><span class="line">ENV FLINK_HOME $FLINK_INSTALL_PATH/flink</span><br><span class="line">ENV PATH $PATH:$FLINK_HOME/bin</span><br><span class="line"></span><br><span class="line"># Install build dependencies and flink</span><br><span class="line">...</span><br><span class="line">...</span><br><span class="line"># Configure container</span><br><span class="line">ADD flink-conf.yaml $FLINK_HOME/conf/flink-conf.yaml</span><br><span class="line">#USER flink</span><br><span class="line">ADD docker-entrypoint.sh $FLINK_HOME/bin/</span><br><span class="line">ENTRYPOINT ["docker-entrypoint.sh"]</span><br><span class="line">CMD ["sh", "-c"]</span><br></pre></td></tr></table></figure></p>
+<p>这里Dockerfile首先指定基础镜像java:8-jre-alpine，指定Flink版本并下载Flink包。最后将flink-conf.yaml配置文件加到Flink的配置文件目录下，最后指定容器运行入口docker-entrypoint.sh。<br>由于这里构建高可用模式的Flink集群，需要对默认flink-conf.yaml进行修改：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"># Common</span><br><span class="line"># The host on which the JobManager runs. Only used in non-high-availability </span><br><span class="line">jobmanager.rpc.address: localhost</span><br><span class="line">jobmanager.rpc.port: 6123</span><br><span class="line">jobmanager.heap.mb: 256</span><br><span class="line">taskmanager.heap.mb: 512</span><br><span class="line">taskmanager.numberOfTaskSlots: 1</span><br><span class="line">taskmanager.memory.preallocate: false</span><br><span class="line">parallelism.default: 1</span><br><span class="line"></span><br><span class="line"># Streaming state checkpointing</span><br><span class="line">state.backend: filesystem</span><br><span class="line">state.backend.fs.checkpointdir: hdfs://hadoop:9000/flink-checkpoints</span><br><span class="line"></span><br><span class="line"># Master High Availability (required configuration)</span><br><span class="line">recovery.mode: zookeeper</span><br><span class="line">recovery.zookeeper.quorum: zookeeper:2181</span><br><span class="line">recovery.zookeeper.storageDir: hdfs://hadoop:9000/recovery</span><br></pre></td></tr></table></figure></p>
+<p>配置文件中指定了HA模式集群的zookeeper服务地址，以及数据备份HDFS路径，其中zookeeper和hadoop再docker-compose.yml文件中指定的服务标识，在flink容器中可以将该表示看作对应容器的主机名。docker-compose.yml会在后面看到。</p>
+<p>容器入口脚本docker-entrypoint.sh接收参数jobmanager或taskmanager分别启动不同服务，这里不再具体分析。</p>
+<h5 id="hadoop-和-zookeeper镜像构建"><a href="#hadoop-和-zookeeper镜像构建" class="headerlink" title="hadoop 和 zookeeper镜像构建"></a>hadoop 和 zookeeper镜像构建</h5><p>hadoop 和 zookeeper镜像构建使用已有的Dockerfile构建，如果需要定制化或者希望减小build的镜像大小，可以进行优化。用到的Dockerflie和构建方法整理在上面的链接里，这里不再拿出来分析。</p>
+<h4 id="Docker-Compose编排集群"><a href="#Docker-Compose编排集群" class="headerlink" title="Docker Compose编排集群"></a>Docker Compose编排集群</h4><p>先来看docker-compose.yml:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line">version: &quot;2&quot;                                                                                          </span><br><span class="line">services:                                                                                             </span><br><span class="line">  jobmanager:                                                                                         </span><br><span class="line">    image: flink                                                                                      </span><br><span class="line">    ports:                                                                                            </span><br><span class="line">      - &quot;48085:8081&quot;                                                                                  </span><br><span class="line">    expose:                                                                                           </span><br><span class="line">      - &quot;6123&quot;                                                                                        </span><br><span class="line">    command: jobmanager                                                                               </span><br><span class="line">    depends_on:                                                                                       </span><br><span class="line">      - zookeeper                                                                                     </span><br><span class="line">      - hadoop                                                                                        </span><br><span class="line">    links:                                                                                            </span><br><span class="line">      - &quot;zookeeper&quot;                                                                                   </span><br><span class="line">      - &quot;hadoop&quot;                                                                                     </span><br><span class="line">  taskmanager:</span><br><span class="line">    image: flink</span><br><span class="line">    expose:</span><br><span class="line">      - &quot;6121&quot;</span><br><span class="line">      - &quot;6122&quot;</span><br><span class="line">    depends_on:</span><br><span class="line">      - jobmanager</span><br><span class="line">      - zookeeper</span><br><span class="line">      - hadoop</span><br><span class="line">    command: taskmanager</span><br><span class="line">    links:</span><br><span class="line">      - &quot;jobmanager&quot;</span><br><span class="line">      - &quot;zookeeper&quot;</span><br><span class="line">      - &quot;hadoop&quot;</span><br><span class="line">  zookeeper:</span><br><span class="line">    image: zookeeper</span><br><span class="line">    ports:</span><br><span class="line">      - &quot;2181:2182&quot;</span><br><span class="line">    expose:</span><br><span class="line">      - &quot;2181&quot;</span><br><span class="line">  hadoop:</span><br><span class="line">    image: sequenceiq/hadoop-docker:2.7.1</span><br><span class="line">    ports:</span><br><span class="line">      - &quot;50070:50070&quot;</span><br><span class="line">      - &quot;8088:8088&quot;</span><br><span class="line">      - &quot;9000:9000&quot;</span><br><span class="line">      - &quot;8020:8020&quot;</span><br><span class="line">    expose:</span><br><span class="line">      - &quot;8020&quot;</span><br><span class="line">      - &quot;8042&quot;</span><br><span class="line">      - &quot;8088&quot;</span><br><span class="line">      - &quot;9000&quot;</span><br><span class="line">      - &quot;10020&quot;</span><br><span class="line">      - &quot;19888&quot;</span><br><span class="line">      - &quot;50010&quot;</span><br><span class="line">      - &quot;50020&quot;</span><br><span class="line">      - &quot;50070&quot;</span><br><span class="line">      - &quot;50075&quot;</span><br><span class="line">      - &quot;50090&quot;</span><br></pre></td></tr></table></figure></p>
+<p>从yml文件中可以看到指定jobmanager和jobmanager2两个JobManager服务分别将web端口8081映射到宿主机的48085，48084端口，指定JobManager服务依赖hadoop和zookeeper并用links标签链接；taskmanager依赖zookeeper和jobmanager以及hadoop，同样与其连接。docker-compose.yml的镜像需要根据Dockerfile构建。</p>
+<h4 id="运行Flink集群"><a href="#运行Flink集群" class="headerlink" title="运行Flink集群"></a>运行Flink集群</h4><p>进入docker-flink目录，运行脚本构建flink镜像<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sh build.sh</span><br></pre></td></tr></table></figure></p>
+<p>docker-compose启动flink集群，并查看容器启动是否正常：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">docker-compose up -d</span><br><span class="line"></span><br><span class="line">docker-compose logs</span><br></pre></td></tr></table></figure></p>
+<p>系统默认启动1个JobManager和1个TaskManager，可以启动N个TaskManager<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker-compose scale taskmanager=N</span><br></pre></td></tr></table></figure></p>
+<h4 id="查看集群启动情况"><a href="#查看集群启动情况" class="headerlink" title="查看集群启动情况"></a>查看集群启动情况</h4><p>docker ps查看容器启动情况：<br><img src="http://upload-images.jianshu.io/upload_images/2159902-b5865cee21810a30.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="docker-ps"></p>
+<p>连接zookeeper，可以登录进容器，也可以在宿主机利用映射的2081端口，查看JobManager的注册和选举：<br><img src="http://upload-images.jianshu.io/upload_images/2159902-1735d52804bbf926.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="zookeeper-flink"></p>
+<p>可以看到候选JobManager信息保存在/flink/default/leaderlatch节点，被选举出来的leader JobManager将自己Actor地址和ID对象信息保存在/flink/default/leader节点，TaskManager从zk节点获取该地址向JobManager完成注册。</p>
+<p>flink web端口8081映射在宿主机48085，浏览器访问宿主机该端口可以看到2个TaskManager成功注册。</p>
+<h4 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h4><p>单机构建集群，集群性能并不会达到分布式的效果，仅仅是资源的隔离，模拟出多个主机，更多的是应用于开发测试使用。实际应用场景的部署仍然需要其他分布式系统管理容器。</p>
+<p>更多关注公众号：<br><img src="https://upload-images.jianshu.io/upload_images/2159902-e28220521b7ef499.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="wechat"></p>
+
+        </div>
+      </article>
+    </div>
+    <!-- Comments -->
+    <div class="container">
+      
+<section id="comment">
+  <!-- <h1 class="title">留言</h1> -->
+
+  
+</section>
+
+
+    </div>
+    <!-- Pre or Next -->
+    <div class="nav-links">
+      
+        <div class="nav-previous">
+          <a href="/2016/12/01/Docker-Swarm搭建Gitlab/" rel="prev"><span class="meta-arraw meta-arraw-left"></span> 上一页</a>
+        </div>
+      
+      
+        <div class="nav-next">
+          <a href="/2016/11/08/Flink源码（二）：TaskManager服务发现/" rel="prev">下一页 <span class="meta-arraw meta-arraw-right"></span></a>
+        </div>
+      
+    </div>
+
+  </div>
+</div>
+
+
+  <!-- Footer -->
+  <!-- Footer-widgets -->
+<div class="footer-widgets">
+  <div class="row inside-wrapper">
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">关于本站</h1>
+        <div class="custom-widget-content">
+          
+          <p align="left">分享日常学习，传播核心价值观，传播正能量。</p>
+        </div>
+      </aside>
+    </div>
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">与我联系</h1>
+        <div class="widget-text">
+          
+            
+              <a href="https://github.com/zqhZY" class="icon icon-github" target="_blank">github</a>
+            
+              <a href="zqingheng@163.com" class="icon icon-mail" target="_blank">mail</a>
+            
+          
+        </div>
+      </aside>
+    </div>
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">站内搜索</h1>
+        <div class="widget-text">
+          <form onSubmit="return appDaily.submitSearch('')">
+            <p>
+              <input type="text" placeholder="search..." id="homeSearchInput">
+            </p>
+            <!-- <input type="submit" value="GO"> -->
+          </form>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+<!-- Footer -->
+<footer class="site-info">
+  <p>
+    <span>A Note &copy; 2018</span>
+    
+      <span class="split">|</span>
+      <span>Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> with Theme <a href="https://github.com/GallenHu/hexo-theme-Daily" target="_blank">Daily</a></span>
+    
+  </p>
+</footer>
+
+
+  <!-- After footer scripts -->
+  <!-- scripts -->
+<script src="/js/app.js"></script>
+
+
+
+
+
+</body>
+
+</html>

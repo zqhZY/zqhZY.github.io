@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<!-- Head tag -->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+  <!--Description-->
+  
+
+  <!--Author-->
+  
+  <meta name="author" content="Zico">
+  
+
+  <!--Open Graph Title-->
+  
+      <meta property="og:title" content="pytorch源码：Python层"/>
+  
+  <!--Open Graph Description-->
+  
+  <!--Open Graph Site Name-->
+  <meta property="og:site_name" content="A Note"/>
+  <!--Type page-->
+  
+      <meta property="og:type" content="article" />
+  
+  <!--Page Cover-->
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <!-- Title -->
+  
+  <title>pytorch源码：Python层 - A Note</title>
+
+
+  <link rel="shortcut icon" href="https://hexo.io/icon/favicon-96x96.png">
+
+  <!-- Custom CSS/Sass -->
+  <link rel="stylesheet" href="/css/style.css">
+
+  <!----------------------------
+  https://github.com/GallenHu/hexo-theme-Daily
+
+ _____            _   _
+|  __ \          (_) | |
+| |  | |   __ _   _  | |  _   _
+| |  | |  / _` | | | | | | | | |
+| |__| | | (_| | | | | | | |_| |
+|_____/   \__,_| |_| |_|  \__, |
+                          __/ |
+                         |___/
+
+    --------------------------->
+
+</head>
+
+
+<body>
+
+  <!-- Nav -->
+  <header class="site-header">
+  <div class="header-inside">
+    <div class="logo">
+      <a href="/" rel="home">
+        
+        <img src="https://hexo.io/logo.svg" alt="A Note" height="60">
+        
+      </a>
+    </div>
+    <!-- Navigation -->
+    <nav class="navbar">
+      <!-- Collect the nav links, forms, and other content for toggling -->
+      <div class="collapse">
+        <ul class="navbar-nav">
+          
+          
+            <li>
+              <a href="/.">
+                
+                  Home
+                
+              </a>
+            </li>
+          
+            <li>
+              <a href="/archives">
+                
+                  Archive
+                
+              </a>
+            </li>
+          
+        </ul>
+      </div>
+      <!-- /.navbar-collapse -->
+    </nav>
+    <div class="button-wrap">
+      <button class="menu-toggle">Primary Menu</button>
+    </div>
+  </div>
+</header>
+
+
+  <!-- Main Content -->
+  <div class="content-area">
+  <div class="post">
+    <!-- Post Content -->
+    <div class="container">
+      <article>
+        <!-- Title date & tags -->
+        <div class="post-header">
+          <h1 class="entry-title">
+            pytorch源码：Python层
+            
+          </h1>
+          <p class="posted-on">
+          2017-08-01
+          </p>
+          <div class="tags-links">
+            
+              
+                <a href="/tags/DNN/" rel="tag">
+                  DNN
+                </a>
+              
+                <a href="/tags/源码/" rel="tag">
+                  源码
+                </a>
+              
+            
+          </div>
+        </div>
+        <!-- Post Main Content -->
+        <div class="entry-content has_line_number">
+          <p><img src="http://upload-images.jianshu.io/upload_images/2159902-14ecef91420166e0.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="head"><br>尝试使用了pytorch，相比其他深度学习框架，pytorch显得简洁易懂。花时间读了部分源码，主要结合简单例子带着问题阅读，不涉及源码中C拓展库的实现。<br><a id="more"></a></p>
+<h3 id="一个简单例子"><a href="#一个简单例子" class="headerlink" title="一个简单例子"></a>一个简单例子</h3><p>实现单层softmax二分类，输入特征维度为4，输出为2，经过softmax函数得出输入的类别概率。代码示意：定义网络结构；使用SGD优化；迭代一次，随机初始化三个样例，每个样例四维特征，target分别为1,0,1；前向传播，使用交叉熵计算loss；反向传播，最后由优化算法更新权重，完成一次迭代。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">import torch</span><br><span class="line">import torch.nn as nn</span><br><span class="line">import torch.nn.functional as F</span><br><span class="line"></span><br><span class="line">class Net(nn.Module):</span><br><span class="line"></span><br><span class="line">    def __init__(self):</span><br><span class="line">        super(Net, self).__init__()</span><br><span class="line">        self.linear = nn.Linear(4, 2)</span><br><span class="line"></span><br><span class="line">    def forward(self, input):</span><br><span class="line">        out = F.softmax(self.linear(input))</span><br><span class="line">        return out</span><br><span class="line"></span><br><span class="line">net = Net()</span><br><span class="line">sgd = torch.optim.SGD(net.parameters(), lr=0.001)</span><br><span class="line">for epoch in range(1):</span><br><span class="line">    features = torch.autograd.Variable(torch.randn(3, 4), requires_grad=True)</span><br><span class="line">    target = torch.autograd.Variable(torch.LongTensor([1, 0, 1]))</span><br><span class="line">    sgd.zero_grad()</span><br><span class="line"></span><br><span class="line">    out = net(features)</span><br><span class="line">    loss = F.cross_entropy(out, target)</span><br><span class="line">    loss.backward()</span><br><span class="line">    sgd.step()</span><br></pre></td></tr></table></figure>
+<p> 从上面的例子，带着下面的问题阅读源码：</p>
+<ul>
+<li>pytorch的主要概念：Tensor、autograd、Variable、Function、Parameter、Module（Layers）、Optimizer；</li>
+<li>自定义Module如何组织网络结构和网络参数；</li>
+<li>前向传播、反向传播实现流程</li>
+<li>优化算法类如何实现，如何和自定义Module联系并更新参数。</li>
+</ul>
+<h3 id="pytorch的主要概念"><a href="#pytorch的主要概念" class="headerlink" title="pytorch的主要概念"></a>pytorch的主要概念</h3><p> pytorch的主要概念官网有很人性化的教程<a href="http://pytorch.org/tutorials/beginner/deep_learning_60min_blitz.html" target="_blank" rel="noopener">Deep Learning with PyTorch: A 60 Minute Blitz</a>， 这里简单概括这些概念：</p>
+<h4 id="Tensor"><a href="#Tensor" class="headerlink" title="Tensor"></a>Tensor</h4><p>类似numpy的ndarrays，强化了可进行GPU计算的特性，由C拓展模块实现。如上面的torch.randn(3, 4) 返回一个3*4的Tensor。和numpy一样，也有一系列的Operation，如<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">x = torch.rand(5, 3)</span><br><span class="line">y = torch.rand(5, 3)</span><br><span class="line">print x + y</span><br><span class="line">print torch.add(x, y)</span><br><span class="line">print x.add_(y)</span><br></pre></td></tr></table></figure></p>
+<h4 id="Varaiable与autograd"><a href="#Varaiable与autograd" class="headerlink" title="Varaiable与autograd"></a>Varaiable与autograd</h4><p>Variable封装了Tensor，包括了几乎所有的Tensor可以使用的Operation方法，主要使用在自动求导(autograd)，Variable类继承_C._VariableBase，由C拓展类定义实现。<br>Variable是autograd的计算单元，Variable通过Function组织成函数表达式（计算图）：<br><img src="http://upload-images.jianshu.io/upload_images/2159902-b1eed88292fea1a1.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="variable"></p>
+<ul>
+<li>data 为其封装的tensor值</li>
+<li>grad 为其求导后的值</li>
+<li>creator 为创建该Variable的Function，实现中grad_fn属性则指向该Function。<br>如： <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">import torch</span><br><span class="line">from torch.autograd import Variable</span><br><span class="line">x = Variable(torch.ones(2, 2), requires_grad=True)</span><br><span class="line">y = x + 2</span><br><span class="line">print y.grad_fn</span><br><span class="line">print &quot;before backward: &quot;, x.grad</span><br><span class="line">y.backward()</span><br><span class="line">print &quot;after backward: &quot;, x.grad</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p>输出结果：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&lt;torch.autograd.function.AddConstantBackward object at 0x7faa6f3bdd68&gt;</span><br><span class="line">before backward:  None</span><br><span class="line">after backward:  Variable containing:</span><br><span class="line"> 1</span><br><span class="line">[torch.FloatTensor of size 1x1]</span><br></pre></td></tr></table></figure></p>
+<p> 调用y的backward方法，则会对创建y的Function计算图中所有requires_grad=True的Variable求导（这里的x）。例子中显然dy/dx = 1。</p>
+<h4 id="Parameter"><a href="#Parameter" class="headerlink" title="Parameter"></a>Parameter</h4><p>Parameter 为Variable的一个子类，后面还会涉及，大概两点区别：</p>
+<ul>
+<li>作为Module参数会被自动加入到该Module的参数列表中；</li>
+<li>不能被volatile， 默认require gradient。</li>
+</ul>
+<h4 id="Module"><a href="#Module" class="headerlink" title="Module"></a>Module</h4><p>Module为所有神经网络模块的父类，如开始的例子，Net继承该类，<strong><strong>init</strong></strong>中指定网络结构中的模块，并重写forward方法实现前向传播得到指定输入的输出值，以此进行后面loss的计算和反向传播。</p>
+<h4 id="Optimizer"><a href="#Optimizer" class="headerlink" title="Optimizer"></a>Optimizer</h4><p>Optimizer是所有优化算法的父类（SGD、Adam、…），<strong><strong>init</strong></strong>中传入网络的parameters, 子类实现父类step方法，完成对parameters的更新。</p>
+<h3 id="自定义Module"><a href="#自定义Module" class="headerlink" title="自定义Module"></a>自定义Module</h3><p>该部分说明自定义的Module是如何组织定义在构造函数中的子Module,以及自定义的parameters的保存形式，eg:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">class Net(nn.Module):</span><br><span class="line">    def __init__(self):</span><br><span class="line">        super(Net, self).__init__()</span><br><span class="line">        self.linear = nn.Linear(4, 2)</span><br><span class="line"></span><br><span class="line">    def forward(self, input):</span><br><span class="line">        out = F.softmax(self.linear(input))</span><br><span class="line">        return out</span><br></pre></td></tr></table></figure></p>
+<p>首先看构造函数，Module的构造函数初始化了Module的基本属性，这里关注_parameters和_modules，两个属性初始化为OrderedDict()，pytorch重写的有序字典类型。_parameters保存网络的所有参数，_modules保存当前Module的子Module。<br>module.py：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">class Module(object):</span><br><span class="line"></span><br><span class="line">   def __init__(self):</span><br><span class="line">        self._parameters = OrderedDict()</span><br><span class="line">        self._modules = OrderedDict()</span><br><span class="line">        ...</span><br></pre></td></tr></table></figure></p>
+<p>下面来看自定义Net类中self.linear = nn.Linear(4, 2)语句和_modules、_parameters如何产生联系，或者self.linear及其参数如何被添加到_modules、_parameters字典中。答案在Module的<strong><strong>setattr</strong></strong>方法，该Python内建方法会在类的属性被赋值时调用。<br>module.py:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">def __setattr__(self, name, value):</span><br><span class="line">     def remove_from(*dicts):</span><br><span class="line">         for d in dicts:</span><br><span class="line">             if name in d:</span><br><span class="line">                 del d[name]</span><br><span class="line"></span><br><span class="line">     params = self.__dict__.get(&apos;_parameters&apos;)</span><br><span class="line">     if isinstance(value, Parameter): # ----------- &lt;1&gt;</span><br><span class="line">         if params is None:</span><br><span class="line">             raise AttributeError(</span><br><span class="line">                 &quot;cannot assign parameters before Module.__init__() call&quot;)</span><br><span class="line">         remove_from(self.__dict__, self._buffers, self._modules)</span><br><span class="line">         self.register_parameter(name, value)</span><br><span class="line">     elif params is not None and name in params:</span><br><span class="line">         if value is not None:</span><br><span class="line">             raise TypeError(&quot;cannot assign &apos;&#123;&#125;&apos; as parameter &apos;&#123;&#125;&apos; &quot;</span><br><span class="line">                             &quot;(torch.nn.Parameter or None expected)&quot;</span><br><span class="line">                             .format(torch.typename(value), name))</span><br><span class="line">         self.register_parameter(name, value)</span><br><span class="line">     else:</span><br><span class="line">         modules = self.__dict__.get(&apos;_modules&apos;)</span><br><span class="line">         if isinstance(value, Module):# ----------- &lt;2&gt;</span><br><span class="line">             if modules is None:</span><br><span class="line">                 raise AttributeError(</span><br><span class="line">                     &quot;cannot assign module before Module.__init__() call&quot;)</span><br><span class="line">             remove_from(self.__dict__, self._parameters, self._buffers)</span><br><span class="line">             modules[name] = value</span><br><span class="line">         elif modules is not None and name in modules:</span><br><span class="line">             if value is not None:</span><br><span class="line">                 raise TypeError(&quot;cannot assign &apos;&#123;&#125;&apos; as child module &apos;&#123;&#125;&apos; &quot;</span><br><span class="line">                                 &quot;(torch.nn.Module or None expected)&quot;</span><br><span class="line">                                 .format(torch.typename(value), name))</span><br><span class="line">             modules[name] = value</span><br><span class="line">         ......</span><br></pre></td></tr></table></figure></p>
+<p>调用self.linear = nn.Linear(4, 2)时，父类<strong><strong>setattr</strong></strong>被调用，参数name为“linear”， value为nn.Linear(4, 2)，内建的Linear类同样是Module的子类。所以<2>中的判断为真，接着modules[name] = value，该linear被加入_modules字典。<br>同样自定义Net类的参数即为其子模块Linear的参数，下面看Linear的实现：<br>linear.py:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">class Linear(Module):</span><br><span class="line"></span><br><span class="line">    def __init__(self, in_features, out_features, bias=True):</span><br><span class="line">        super(Linear, self).__init__()</span><br><span class="line">        self.in_features = in_features</span><br><span class="line">        self.out_features = out_features</span><br><span class="line">        self.weight = Parameter(torch.Tensor(out_features, in_features))</span><br><span class="line">        if bias:</span><br><span class="line">            self.bias = Parameter(torch.Tensor(out_features))</span><br><span class="line">        else:</span><br><span class="line">            self.register_parameter(&apos;bias&apos;, None)</span><br><span class="line">        self.reset_parameters()</span><br><span class="line"></span><br><span class="line">    def reset_parameters(self):</span><br><span class="line">        stdv = 1. / math.sqrt(self.weight.size(1))</span><br><span class="line">        self.weight.data.uniform_(-stdv, stdv)</span><br><span class="line">        if self.bias is not None:</span><br><span class="line">            self.bias.data.uniform_(-stdv, stdv)</span><br><span class="line"></span><br><span class="line">    def forward(self, input):</span><br><span class="line">        return F.linear(input, self.weight, self.bias)</span><br></pre></td></tr></table></figure></2></p>
+<p>同样继承Module类，<strong><strong>init</strong></strong>中参数为输入输出维度，是否需要bias参数。在self.weight = Parameter(torch.Tensor(out_features, in_features))的初始化时，同样会调用父类Module的<strong><strong>setattr</strong></strong>， name为“weight”，value为Parameter，此时<1>判断为真，调用self.register_parameter(name, value)，该方法中对参数进行合法性校验后放入self._parameters字典中。</1></p>
+<blockquote>
+<p> Linear在reset_parameters方法对权重进行了初始化。</p>
+</blockquote>
+<p> <strong>最终可以得出结论自定义的Module以树的形式组织子Module，子Module及其参数以字典的方式保存。</strong><br> <img src="http://upload-images.jianshu.io/upload_images/2159902-3c50b522ede0fcb6.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="module"></p>
+<h3 id="前向传播、反向传播"><a href="#前向传播、反向传播" class="headerlink" title="前向传播、反向传播"></a>前向传播、反向传播</h3><h4 id="前向传播"><a href="#前向传播" class="headerlink" title="前向传播"></a>前向传播</h4><p>例子中out = net(features)实现了网络的前向传播，该语句会调用Module类的forward方法，该方法被继承父类的子类实现。net(features)使用对象作为函数调用，会调用Python内建的<strong><strong>call</strong></strong>方法，Module重写了该方法。<br>module.py:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">def __call__(self, *input, **kwargs):</span><br><span class="line">   for hook in self._forward_pre_hooks.values():</span><br><span class="line">       hook(self, input)</span><br><span class="line">   result = self.forward(*input, **kwargs)</span><br><span class="line">   for hook in self._forward_hooks.values():</span><br><span class="line">       hook_result = hook(self, input, result)</span><br><span class="line">       if hook_result is not None:</span><br><span class="line">           raise RuntimeError(</span><br><span class="line">               &quot;forward hooks should never return any values, but &apos;&#123;&#125;&apos;&quot;</span><br><span class="line">               &quot;didn&apos;t return None&quot;.format(hook))</span><br><span class="line">   if len(self._backward_hooks) &gt; 0:</span><br><span class="line">       var = result</span><br><span class="line">       while not isinstance(var, Variable):</span><br><span class="line">           var = var[0]</span><br><span class="line">       grad_fn = var.grad_fn</span><br><span class="line">       if grad_fn is not None:</span><br><span class="line">           for hook in self._backward_hooks.values():</span><br><span class="line">               wrapper = functools.partial(hook, self)</span><br><span class="line">               functools.update_wrapper(wrapper, hook)</span><br><span class="line">               grad_fn.register_hook(wrapper)</span><br><span class="line">   return result</span><br></pre></td></tr></table></figure></p>
+<p><strong><strong>call</strong></strong>方法中调用result = self.forward(*input, **kwargs)前后会查看有无hook函数需要调用（预处理和后处理）。<br> 例子中Net的forward方法中out = F.softmax(self.linear(input))，同样会调用self.linear的forward方法F.linear(input, self.weight, self.bias)进行矩阵运算（仿射变换）。<br> functional.py:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">def linear(input, weight, bias=None):</span><br><span class="line">    if input.dim() == 2 and bias is not None:</span><br><span class="line">        # fused op is marginally faster</span><br><span class="line">        return torch.addmm(bias, input, weight.t())</span><br><span class="line"></span><br><span class="line">    output = input.matmul(weight.t())</span><br><span class="line">    if bias is not None:</span><br><span class="line">        output += bias</span><br><span class="line">    return output</span><br></pre></td></tr></table></figure></p>
+<p>最终经过F.softmax，得到前向输出结果。F.softmax和F.linear类似前面说到的Function（Parameters的表达式或计算图）。</p>
+<h4 id="反向传播"><a href="#反向传播" class="headerlink" title="反向传播"></a>反向传播</h4><p>得到前向传播结果后，计算loss = F.cross_entropy(out, target)，接下来反向传播求导数d(loss)/d(weight)和d(loss)/d(bias)：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">loss.backward()</span><br></pre></td></tr></table></figure></p>
+<p>backward()方法同样底层由C拓展，这里暂不深入，调用该方法后，loss计算图中的所有Variable(这里linear的weight和bias)的grad被求出。</p>
+<h3 id="Optimizer参数更新"><a href="#Optimizer参数更新" class="headerlink" title="Optimizer参数更新"></a>Optimizer参数更新</h3><p>在计算出参数的grad后，需要根据优化算法对参数进行更新，不同的优化算法有不同的更新策略。<br>optimizer.py:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">class Optimizer(object):</span><br><span class="line"></span><br><span class="line">    def __init__(self, params, defaults):</span><br><span class="line">        if isinstance(params, Variable) or torch.is_tensor(params):</span><br><span class="line">            raise TypeError(&quot;params argument given to the optimizer should be &quot;</span><br><span class="line">                            &quot;an iterable of Variables or dicts, but got &quot; +</span><br><span class="line">                            torch.typename(params))</span><br><span class="line"></span><br><span class="line">        self.state = defaultdict(dict)</span><br><span class="line">        self.param_groups = list(params)</span><br><span class="line">       ......</span><br><span class="line">       </span><br><span class="line">    def zero_grad(self):</span><br><span class="line">        &quot;&quot;&quot;Clears the gradients of all optimized :class:`Variable` s.&quot;&quot;&quot;</span><br><span class="line">        for group in self.param_groups:</span><br><span class="line">            for p in group[&apos;params&apos;]:</span><br><span class="line">                if p.grad is not None:</span><br><span class="line">                    if p.grad.volatile:</span><br><span class="line">                        p.grad.data.zero_()</span><br><span class="line">                    else:</span><br><span class="line">                        data = p.grad.data</span><br><span class="line">                        p.grad = Variable(data.new().resize_as_(data).zero_())</span><br><span class="line"></span><br><span class="line">    def step(self, closure):</span><br><span class="line">        &quot;&quot;&quot;Performs a single optimization step (parameter update).</span><br><span class="line"></span><br><span class="line">        Arguments:</span><br><span class="line">            closure (callable): A closure that reevaluates the model and</span><br><span class="line">                returns the loss. Optional for most optimizers.</span><br><span class="line">        &quot;&quot;&quot;</span><br><span class="line">        raise NotImplementedError</span><br></pre></td></tr></table></figure></p>
+<p>Optimizer在init中将传入的params保存到self.param_groups，另外两个重要的方法zero_grad负责将参数的grad置零方便下次计算，step负责参数的更新，由子类实现。<br> 以列子中的sgd = torch.optim.SGD(net.parameters(), lr=0.001)为例，其中net.parameters()返回Net参数的迭代器，为待优化参数；lr指定学习率。<br> SGD.py:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line">class SGD(Optimizer):</span><br><span class="line"></span><br><span class="line">    def __init__(self, params, lr=required, momentum=0, dampening=0,</span><br><span class="line">                 weight_decay=0, nesterov=False):</span><br><span class="line">        defaults = dict(lr=lr, momentum=momentum, dampening=dampening,</span><br><span class="line">                        weight_decay=weight_decay, nesterov=nesterov)</span><br><span class="line">        if nesterov and (momentum &lt;= 0 or dampening != 0):</span><br><span class="line">            raise ValueError(&quot;Nesterov momentum requires a momentum and zero dampening&quot;)</span><br><span class="line">        super(SGD, self).__init__(params, defaults)</span><br><span class="line"></span><br><span class="line">    def __setstate__(self, state):</span><br><span class="line">        super(SGD, self).__setstate__(state)</span><br><span class="line">        for group in self.param_groups:</span><br><span class="line">            group.setdefault(&apos;nesterov&apos;, False)</span><br><span class="line"></span><br><span class="line">    def step(self, closure=None):</span><br><span class="line">        &quot;&quot;&quot;Performs a single optimization step.</span><br><span class="line"></span><br><span class="line">        Arguments:</span><br><span class="line">            closure (callable, optional): A closure that reevaluates the model</span><br><span class="line">                and returns the loss.</span><br><span class="line">        &quot;&quot;&quot;</span><br><span class="line">        loss = None</span><br><span class="line">        if closure is not None:</span><br><span class="line">            loss = closure()</span><br><span class="line"></span><br><span class="line">        for group in self.param_groups:</span><br><span class="line">            weight_decay = group[&apos;weight_decay&apos;]</span><br><span class="line">            momentum = group[&apos;momentum&apos;]</span><br><span class="line">            dampening = group[&apos;dampening&apos;]</span><br><span class="line">            nesterov = group[&apos;nesterov&apos;]</span><br><span class="line"></span><br><span class="line">            for p in group[&apos;params&apos;]:</span><br><span class="line">                if p.grad is None:</span><br><span class="line">                    continue</span><br><span class="line">                d_p = p.grad.data</span><br><span class="line">                if weight_decay != 0:</span><br><span class="line">                    d_p.add_(weight_decay, p.data)</span><br><span class="line">                if momentum != 0:</span><br><span class="line">                    param_state = self.state[p]</span><br><span class="line">                    if &apos;momentum_buffer&apos; not in param_state:</span><br><span class="line">                        buf = param_state[&apos;momentum_buffer&apos;] = d_p.clone()</span><br><span class="line">                    else:</span><br><span class="line">                        buf = param_state[&apos;momentum_buffer&apos;]</span><br><span class="line">                        buf.mul_(momentum).add_(1 - dampening, d_p)</span><br><span class="line">                    if nesterov:</span><br><span class="line">                        d_p = d_p.add(momentum, buf)</span><br><span class="line">                    else:</span><br><span class="line">                        d_p = buf</span><br><span class="line"></span><br><span class="line">                p.data.add_(-group[&apos;lr&apos;], d_p)</span><br><span class="line"></span><br><span class="line">        return loss</span><br></pre></td></tr></table></figure></p>
+<p>SGD的step方法中，判断是否使用权重衰减和动量更新，如果不使用，直接更新权重param := param - lr * d(param)。例子中调用sgd.step()后完成一次epoch。这里由于传递到Optimizer的参数集是可更改（mutable）的，step中对参数的更新同样是Net中参数的更新。</p>
+<h3 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h3><p>到此，根据一个简单例子阅读了pytorch中Python实现的部分源码，没有深入到底层Tensor、autograd等部分的C拓展实现，后面再继续读一读C拓展部分的代码。</p>
+<p>更多关注公众号：<br><img src="https://upload-images.jianshu.io/upload_images/2159902-e28220521b7ef499.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="wechat"></p>
+
+        </div>
+      </article>
+    </div>
+    <!-- Comments -->
+    <div class="container">
+      
+<section id="comment">
+  <!-- <h1 class="title">留言</h1> -->
+
+  
+</section>
+
+
+    </div>
+    <!-- Pre or Next -->
+    <div class="nav-links">
+      
+        <div class="nav-previous">
+          <a href="/2017/08/20/pytorch源码：C拓展/" rel="prev"><span class="meta-arraw meta-arraw-left"></span> 上一页</a>
+        </div>
+      
+      
+        <div class="nav-next">
+          <a href="/2017/06/20/deep-learning参数初始化/" rel="prev">下一页 <span class="meta-arraw meta-arraw-right"></span></a>
+        </div>
+      
+    </div>
+
+  </div>
+</div>
+
+
+  <!-- Footer -->
+  <!-- Footer-widgets -->
+<div class="footer-widgets">
+  <div class="row inside-wrapper">
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">关于本站</h1>
+        <div class="custom-widget-content">
+          
+          <p align="left">分享日常学习，传播核心价值观，传播正能量。</p>
+        </div>
+      </aside>
+    </div>
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">与我联系</h1>
+        <div class="widget-text">
+          
+            
+              <a href="https://github.com/zqhZY" class="icon icon-github" target="_blank">github</a>
+            
+              <a href="zqingheng@163.com" class="icon icon-mail" target="_blank">mail</a>
+            
+          
+        </div>
+      </aside>
+    </div>
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">站内搜索</h1>
+        <div class="widget-text">
+          <form onSubmit="return appDaily.submitSearch('')">
+            <p>
+              <input type="text" placeholder="search..." id="homeSearchInput">
+            </p>
+            <!-- <input type="submit" value="GO"> -->
+          </form>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+<!-- Footer -->
+<footer class="site-info">
+  <p>
+    <span>A Note &copy; 2018</span>
+    
+      <span class="split">|</span>
+      <span>Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> with Theme <a href="https://github.com/GallenHu/hexo-theme-Daily" target="_blank">Daily</a></span>
+    
+  </p>
+</footer>
+
+
+  <!-- After footer scripts -->
+  <!-- scripts -->
+<script src="/js/app.js"></script>
+
+
+
+
+
+</body>
+
+</html>

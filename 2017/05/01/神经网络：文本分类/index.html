@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<!-- Head tag -->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+  <!--Description-->
+  
+
+  <!--Author-->
+  
+  <meta name="author" content="Zico">
+  
+
+  <!--Open Graph Title-->
+  
+      <meta property="og:title" content="神经网络：文本分类"/>
+  
+  <!--Open Graph Description-->
+  
+  <!--Open Graph Site Name-->
+  <meta property="og:site_name" content="A Note"/>
+  <!--Type page-->
+  
+      <meta property="og:type" content="article" />
+  
+  <!--Page Cover-->
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <!-- Title -->
+  
+  <title>神经网络：文本分类 - A Note</title>
+
+
+  <link rel="shortcut icon" href="https://hexo.io/icon/favicon-96x96.png">
+
+  <!-- Custom CSS/Sass -->
+  <link rel="stylesheet" href="/css/style.css">
+
+  <!----------------------------
+  https://github.com/GallenHu/hexo-theme-Daily
+
+ _____            _   _
+|  __ \          (_) | |
+| |  | |   __ _   _  | |  _   _
+| |  | |  / _` | | | | | | | | |
+| |__| | | (_| | | | | | | |_| |
+|_____/   \__,_| |_| |_|  \__, |
+                          __/ |
+                         |___/
+
+    --------------------------->
+
+</head>
+
+
+<body>
+
+  <!-- Nav -->
+  <header class="site-header">
+  <div class="header-inside">
+    <div class="logo">
+      <a href="/" rel="home">
+        
+        <img src="https://hexo.io/logo.svg" alt="A Note" height="60">
+        
+      </a>
+    </div>
+    <!-- Navigation -->
+    <nav class="navbar">
+      <!-- Collect the nav links, forms, and other content for toggling -->
+      <div class="collapse">
+        <ul class="navbar-nav">
+          
+          
+            <li>
+              <a href="/.">
+                
+                  Home
+                
+              </a>
+            </li>
+          
+            <li>
+              <a href="/archives">
+                
+                  Archive
+                
+              </a>
+            </li>
+          
+        </ul>
+      </div>
+      <!-- /.navbar-collapse -->
+    </nav>
+    <div class="button-wrap">
+      <button class="menu-toggle">Primary Menu</button>
+    </div>
+  </div>
+</header>
+
+
+  <!-- Main Content -->
+  <div class="content-area">
+  <div class="post">
+    <!-- Post Content -->
+    <div class="container">
+      <article>
+        <!-- Title date & tags -->
+        <div class="post-header">
+          <h1 class="entry-title">
+            神经网络：文本分类
+            
+          </h1>
+          <p class="posted-on">
+          2017-05-01
+          </p>
+          <div class="tags-links">
+            
+              
+                <a href="/tags/DNN/" rel="tag">
+                  DNN
+                </a>
+              
+                <a href="/tags/NLP/" rel="tag">
+                  NLP
+                </a>
+              
+            
+          </div>
+        </div>
+        <!-- Post Main Content -->
+        <div class="entry-content has_line_number">
+          <p><img src="http://upload-images.jianshu.io/upload_images/2159902-1cea3f984558f919.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="tensorflow"></p>
+<p> 由于需要学习语音识别，期间接触了深度学习的算法。利用空闲时间，想用神经网络做一个文本分类的应用， 目的是从头到尾完成一次机器学习的应用，学习模型的优化方法，同时学会使用主流的深度学习框架（这里选择tensorflow）。<br><a id="more"></a><br>文章分为两部分，本文仅实现流程，用简单的softmax回归对文本进行分类，后面一篇文章再从流程的各个方面对模型进行优化，达到比较好的效果。</p>
+<h4 id="收集数据"><a href="#收集数据" class="headerlink" title="收集数据"></a>收集数据</h4><p>该部分不是这里的重点，数据从各大新闻网站爬取新闻文本，分十类保存到本地，包括科技、生活、体育、娱乐等。文本分别保存到training_set和testing_set目录下，如：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">$ tree -L 1 training_set/</span><br><span class="line">training_set/</span><br><span class="line">├── 10_hel</span><br><span class="line">├── 1_ent</span><br><span class="line">├── 2_fin</span><br><span class="line">├── 3_spo</span><br><span class="line">├── 4_tec</span><br><span class="line">├── 5_mil</span><br><span class="line">├── 6_soc</span><br><span class="line">├── 7_lif</span><br><span class="line">├── 8_cul</span><br><span class="line">└── 9_car</span><br></pre></td></tr></table></figure></p>
+<p> 文本以text_id.txt的格式保存在不同类的目录下（如text_1234.txt）。本例保存了共113673个训练文本和等数量的测试文本（暂时按1:1的比例）。</p>
+<h4 id="预处理文本"><a href="#预处理文本" class="headerlink" title="预处理文本"></a>预处理文本</h4><h5 id="step0"><a href="#step0" class="headerlink" title="step0"></a>step0</h5><p> 为方便后面处理，预处理文本首先要分别针对训练文本和测试文本生成唯一的文本ID, 这里用 <strong>{class_id}<strong>{text_type}</strong>{text_id}.txt</strong> 来标示唯一文本，class_id为类的id，这里为1-10；text_type为数据类型包括train和test；text_id为类文件夹下的文本id，实现函数：。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">def get_unique_id(self, data_dir):</span><br><span class="line">		&quot;&quot;&quot;</span><br><span class="line">			get flie unique id famate as &#123;class_id&#125;_type_&#123;text_id&#125;.txt.</span><br><span class="line">			data_dir is the full path of file</span><br><span class="line">		  	e.g ./training_set/4_tec/4_tec_text/text_2001.txt</span><br><span class="line">			where &quot;training&quot; is type, &quot;4&quot; is file class, and &quot;2001&quot; is text id.</span><br><span class="line">			modify this function to adapt your data dir fomate</span><br><span class="line">		&quot;&quot;&quot;</span><br><span class="line">		</span><br><span class="line">		dir_list = data_dir.split(&quot;/&quot;)</span><br><span class="line">		class_id = dir_list[2].split(&quot;_&quot;)[0]</span><br><span class="line">		text_id = dir_list[4].split(&quot;.&quot;)[0]</span><br><span class="line">		type_id = dir_list[1].split(&quot;_&quot;)[0]</span><br><span class="line">		return class_id + &quot;_&quot; + type_id + &quot;_&quot; + text_id</span><br></pre></td></tr></table></figure></p>
+<h5 id="step1-分词"><a href="#step1-分词" class="headerlink" title="step1: 分词"></a>step1: 分词</h5><p> 通俗来讲，文本分类的主要思想，是构建各类文本的汉语词典，通过对文本进行分析，观察文本中哪类词汇比较多，由此判断文本所属类别。因此，文本分类需要对文本进行分词操作，可以选择的分词工具很多，这里选择Python编写的jieba开源库对文本进行分词，并以行为单位，将文本保存到输出文件，该部分实现比较简单：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">def splitwords(self, data_dir, data_type):</span><br><span class="line">		</span><br><span class="line">		if os.path.exists(data_type+&quot;.txt&quot;):</span><br><span class="line">			os.remove(data_type+&quot;.txt&quot;)</span><br><span class="line">		</span><br><span class="line">		list_dirs = os.walk(data_dir)</span><br><span class="line">		for root, _, files in list_dirs:</span><br><span class="line">			print root</span><br><span class="line">			# get all files under data_dir</span><br><span class="line">			for fp in files:</span><br><span class="line">				file_path = os.path.join(root, fp)</span><br><span class="line">				file_id = self.get_unique_id(file_path)</span><br><span class="line">				#split words for f, save in file ./data_type.txt</span><br><span class="line">				with nested(open(file_path), open(data_type+&quot;.txt&quot;, &quot;a+&quot;)) as (f1, f2):</span><br><span class="line">					data = f1.read()</span><br><span class="line">					#print data</span><br><span class="line">					seg_list = jieba.cut(data, cut_all=False)</span><br><span class="line">					f2.write(file_id + &quot; &quot; + &quot; &quot;.join(seg_list).replace(&quot;\n&quot;, &quot; &quot;)+&quot;\n&quot;)</span><br><span class="line">		</span><br><span class="line">		print &quot;split word for %s file end.&quot; % data_type</span><br><span class="line">		return</span><br></pre></td></tr></table></figure></p>
+<p>函数传入参数为数据集目录路径，以及数据集类型（train or test）。结果文件保存形如train.txt，后续的操作在该输出文件基础之上。输出文件格式为:&lt;class_{data_type}_id&gt; &lt; words &gt;</p>
+<h5 id="step2-去除停用词"><a href="#step2-去除停用词" class="headerlink" title="step2: 去除停用词"></a>step2: 去除停用词</h5><p>这部分主要删去文本中的停用词，停用词包括一些对于文本分类无用，而且出经常出现的词汇或符号，如“因此”、“关于”、“嘿嘿”、标点符号等。去除停用词需根据停用词典，去除上面经过分词操作的文本中的停用词。停用词典可以根据自己需要生成或在网络上获得，这里后面<a href="https://github.com/zqhZY/textclasser" target="_blank" rel="noopener">源码链接</a>中会给出使用的停用词词典。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">def rm_stopwords(self, file_path, word_dict):</span><br><span class="line">		</span><br><span class="line">		#read stop word dict and save in stop_dict</span><br><span class="line">		stop_dict = &#123;&#125;</span><br><span class="line">		with open(word_dict) as d:</span><br><span class="line">			for word in d:</span><br><span class="line">				stop_dict[word.strip(&quot;\n&quot;)] = 1</span><br><span class="line">		</span><br><span class="line">		# remove tmp file if exists</span><br><span class="line">		if os.path.exists(file_path+&quot;.tmp&quot;):</span><br><span class="line">			os.remove(file_path+&quot;.tmp&quot;)</span><br><span class="line">	</span><br><span class="line">		print &quot;now remove stop words in %s.&quot; % file_path</span><br><span class="line">		# read source file and rm stop word for each line.</span><br><span class="line">		with nested(open(file_path), open(file_path+&quot;.tmp&quot;, &quot;a+&quot;))  as (f1, f2):</span><br><span class="line">			for line in f1:</span><br><span class="line">				tmp_list = [] # save words not in stop dict</span><br><span class="line">				words = line.split()</span><br><span class="line">				for word in words[1:]:</span><br><span class="line">					if word not in stop_dict:</span><br><span class="line">						tmp_list.append(word)</span><br><span class="line">				words_without_stop =  &quot; &quot;.join(tmp_list)</span><br><span class="line">				f2.write(words[0] + &quot; &quot; + words_without_stop + &quot;\n&quot;)</span><br><span class="line">		</span><br><span class="line">		# overwrite origin file with file been removed stop words</span><br><span class="line">		shutil.move(file_path+&quot;.tmp&quot;, file_path)</span><br><span class="line">		print &quot;stop words in %s has been removed.&quot; % file_path</span><br><span class="line">		return</span><br></pre></td></tr></table></figure></p>
+<p>代码中经过简单的按行读文本，然后搜索停用词典，如果文本中的词汇在词典中，则跳过，否则保存。这里每行对应数据集中的一个文本。</p>
+<h5 id="step3-生成词典"><a href="#step3-生成词典" class="headerlink" title="step3: 生成词典"></a>step3: 生成词典</h5><p> 上面提到文本分类需要得到能表征各类文本的汉语词典，这部分的主要思路是实现<a href="http://www.ruanyifeng.com/blog/2013/03/tf-idf.html" target="_blank" rel="noopener">tf_idf算法</a>自动提取关键词，根据词频（TF）和逆文档频率（IDF）来衡量词汇在文章中的重要程度。这里词频的计算采用公式：<br> <img src="http://upload-images.jianshu.io/upload_images/2159902-cb8c5c3803c2c38d.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="tf"><br>由于是衡量某类文本的关键词，公式中的“文章”为某类所有文本的总和。逆文档频率计算采用公式：<br><img src="http://upload-images.jianshu.io/upload_images/2159902-029bc1094be7e0fe.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="itf"><br>上面的文档总数为train数据集所有文本的数目。tf-idf为两个指标的乘积，计算各类文本中所有词汇的tf-idf，由小到大排序，默认取前500个词汇作为该类的关键词保存到词典。最终生成大小为5000的词典。简洁考虑，该部分的关键代码（gen_dict方法中）：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">for k, text_info in class_dict.items():</span><br><span class="line">	#print &quot;class %s has %d words&quot; % (k, text_info.file_num)</span><br><span class="line">	# get tf in words of class k</span><br><span class="line">	for w in text_info.wordmap:</span><br><span class="line">		text_info.tf_idf(w, word_in_files[w], text_num)</span><br><span class="line"></span><br><span class="line">	main_words = []</span><br><span class="line">	with open(save_path, &quot;a+&quot;) as f:</span><br><span class="line">		main_words = text_info.get_mainwords()</span><br><span class="line">		print &quot;class %s : main words num: %d&quot; % (k, len(main_words))</span><br><span class="line">		f.write(&quot;\n&quot;.join(main_words) + &quot;\n&quot;)</span><br></pre></td></tr></table></figure></p>
+<p>class_dict是类id到该类文本信息(text_info)的字典，text_info.wordmap保存了该类文本的所有不重复的词汇，text_info.tf_idf方法计算该类文本某词的tf-idf，输入参数为词汇，词汇在整个语料库出现的文本数和语料库的文本数。text_info.get_mainwords方法得到该类本前500个关键词。完整的定义与实现参考<a href="https://github.com/zqhZY/textclasser/blob/master/tools/data_prepare.py" target="_blank" rel="noopener">源码</a>。</p>
+<h5 id="step4-生成词袋"><a href="#step4-生成词袋" class="headerlink" title="step4: 生成词袋"></a>step4: 生成词袋</h5><p> 该部分实现向量化文本，利用生成的词典，以行为单位将去停用词后的文本转换为向量，这里向量为5000维。如果文本出现词典中的某词汇，则文本向量对应词典中该词汇的位置的计数累加。最终生成文件，行数为文本数，列为5000。此外生成对应的label文件，行数为文本数，对应于文本向量文件行，列为1，对应某文本的类别（1-10）。该部分代码比较简单，实现在gen_wordbag方法中。</p>
+<p> 到此完成了文本的预处理，接下来针对不同分类算法，将有不同的处理，这里参考<a href="http://www.tensorfly.cn/tfdoc/tutorials/mnist_beginners.html" target="_blank" rel="noopener">tensotflow处理MNIST数据集</a>，读取预处理后的文本到系统，进行线性回归。</p>
+<h4 id="读取训练数据"><a href="#读取训练数据" class="headerlink" title="读取训练数据"></a>读取训练数据</h4><p>该部分主要包括两部分，一是从磁盘读取向量化后的文本保存到numpy数组，将数据和类别分别存储，数据保存为二维(text_line_num, 5000)的数组，text_line_num为数据集的文本数，5000为词典的维度，也是后面模型输入参数的个数。类别保存为标签向量(label_line_num, 1)，label_line_num,同样为数据集的大小。</p>
+<p>为方便处理，将类别10的标签保存为0，并对label进行“one_hot”处理，这部分解释可参考上个tensotflow链接。该部分在<a href="https://github.com/zqhZY/textclasser/blob/master/src/datasets.py" target="_blank" rel="noopener">datasets类</a>中实现。需要注意的是这里train部分数据最为cv（cross validation）数据，这里暂时不会用到。此外，由于数据较多，为节省内存，提高整体运算速度，分别读取train数据集和test数据集。dataset类中保存不同类型的数据集，并实现next_batch方法，获取指定数目的数据。</p>
+<h4 id="训练数据"><a href="#训练数据" class="headerlink" title="训练数据"></a>训练数据</h4><p>该部分利用softmax回归对数据进行训练，对于tensorflow的使用这里不作介绍。完整代码如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">#!/usr/bin/python</span><br><span class="line">#-*-coding:utf-8-*-</span><br><span class="line"></span><br><span class="line">import tensorflow as tf</span><br><span class="line">from datasets import datasets</span><br><span class="line"></span><br><span class="line">data_sets = datasets()</span><br><span class="line">data_sets.read_train_data(&quot;.&quot;, True)</span><br><span class="line"></span><br><span class="line">sess = tf.InteractiveSession()</span><br><span class="line"></span><br><span class="line">x = tf.placeholder(tf.float32, [None, 5000])</span><br><span class="line">W = tf.Variable(tf.zeros([5000, 10]))</span><br><span class="line">b = tf.Variable(tf.zeros([10]))</span><br><span class="line">y = tf.nn.softmax(tf.matmul(x, W) + b)</span><br><span class="line"></span><br><span class="line">y_ = tf.placeholder(tf.float32, [None, 10])</span><br><span class="line">cross_entropy = -tf.reduce_sum(y_ * tf.log(y + 1e-10))</span><br><span class="line">train_step = tf.train.GradientDescentOptimizer(0.01).minimize(cross_entropy)</span><br><span class="line"></span><br><span class="line">#training</span><br><span class="line">tf.global_variables_initializer().run()</span><br><span class="line"></span><br><span class="line">saver = tf.train.Saver()</span><br><span class="line">for i in range(1000):</span><br><span class="line">	batch_xs, batch_ys = data_sets.train.next_batch(100)</span><br><span class="line">	train_step.run(&#123;x: batch_xs, y_: batch_ys&#125;)</span><br><span class="line"></span><br><span class="line">print W.eval()</span><br><span class="line">print b.eval()</span><br><span class="line"></span><br><span class="line">path = saver.save(sess, &quot;./model2/model.md&quot;)</span><br></pre></td></tr></table></figure></p>
+<p>代码中：</p>
+<ul>
+<li>x ： 对于输入数据，None占位符标示输入样本的数量，5000为单个样本的输入维度，对应字典维度。</li>
+<li>W ：权重矩阵，行为输入维度，列为输出维度，这里为类别的数目10。</li>
+<li>b : 偏重为10对应输出的维度</li>
+<li>y : 定义训练输出结果，使用softmax作为激励函数，tf.matmul(x, W) + b为输入参数，tf.matmul为矩阵乘。</li>
+<li>y_ : 真实样本的类别，从数据集读入，None占位符标示输入样本的数量，10为输出的维度。</li>
+<li>cross_entropy： 交叉熵，衡量真实值与预测值的偏差程度，训练过程中目的是最小化该值。</li>
+</ul>
+<p>训练对cross_entropy进行梯度下降算法更新参数，学习率为0.01。迭代1000次，每次使用100个训练集。最后保存训练的模型到指定目录。</p>
+<h4 id="测试模型"><a href="#测试模型" class="headerlink" title="测试模型"></a>测试模型</h4><p>这部分主要读取上面保存的模型参数，对测试数据集进行预测，并打印准确率。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">!/usr/bin/python</span><br><span class="line">#-*-coding:utf-8-*-</span><br><span class="line"></span><br><span class="line">import tensorflow as tf</span><br><span class="line">from datasets import datasets</span><br><span class="line"></span><br><span class="line">data_sets = datasets()</span><br><span class="line">data_sets.read_test_data(&quot;.&quot;, True)</span><br><span class="line"></span><br><span class="line">sess = tf.InteractiveSession()</span><br><span class="line"></span><br><span class="line">x = tf.placeholder(tf.float32, [None, 5000])</span><br><span class="line">W = tf.Variable(tf.zeros([5000, 10]))</span><br><span class="line">b = tf.Variable(tf.zeros([10]))</span><br><span class="line">y = tf.nn.softmax(tf.matmul(x, W) + b)</span><br><span class="line">y_ = tf.placeholder(tf.float32, [None, 10])</span><br><span class="line"></span><br><span class="line">saver = tf.train.Saver()</span><br><span class="line">saver.restore(sess, &quot;./model2/model.md&quot;)</span><br><span class="line"></span><br><span class="line"># test</span><br><span class="line">correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))</span><br><span class="line">acc = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))</span><br><span class="line">print(acc.eval(&#123;x: data_sets.test.text, y_: data_sets.test.label&#125;))</span><br></pre></td></tr></table></figure></p>
+<h4 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h4><p>直接通过上面过程训练模型，得到的准确率大概为65%，虽然比10%高出许多，仍然属于比较低的准确率。在后面一篇文章重点对上面的过程进行改进，提高预测的准确性。<br>此外，值得一提的是，一开始，直接参考tensorflow官网给的例子进行训练会出现准确率为0的现象，观察TensorBord，发现权重和偏重一直不更新，打印W和b发现值为Nan，最后找到问题所在：<br>使用交叉熵作为cost function，由于文本矩阵为严重稀疏矩阵，导致出现y_ <em> tf.log(y)结果为0</em>log0的现象。导致训练参数为Nan，给预测值加一个极小的值，防止与测试为0。</p>
+<p> <a href="">原创文章，转载注明出处</a><br>更多关注公众号：<br><img src="https://upload-images.jianshu.io/upload_images/2159902-e28220521b7ef499.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="wechat"></p>
+
+        </div>
+      </article>
+    </div>
+    <!-- Comments -->
+    <div class="container">
+      
+<section id="comment">
+  <!-- <h1 class="title">留言</h1> -->
+
+  
+</section>
+
+
+    </div>
+    <!-- Pre or Next -->
+    <div class="nav-links">
+      
+        <div class="nav-previous">
+          <a href="/2017/05/02/神经网络：文本分类II/" rel="prev"><span class="meta-arraw meta-arraw-left"></span> 上一页</a>
+        </div>
+      
+      
+        <div class="nav-next">
+          <a href="/2017/04/09/DNN声学建模笔记/" rel="prev">下一页 <span class="meta-arraw meta-arraw-right"></span></a>
+        </div>
+      
+    </div>
+
+  </div>
+</div>
+
+
+  <!-- Footer -->
+  <!-- Footer-widgets -->
+<div class="footer-widgets">
+  <div class="row inside-wrapper">
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">关于本站</h1>
+        <div class="custom-widget-content">
+          
+          <p align="left">分享日常学习，传播核心价值观，传播正能量。</p>
+        </div>
+      </aside>
+    </div>
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">与我联系</h1>
+        <div class="widget-text">
+          
+            
+              <a href="https://github.com/zqhZY" class="icon icon-github" target="_blank">github</a>
+            
+              <a href="zqingheng@163.com" class="icon icon-mail" target="_blank">mail</a>
+            
+          
+        </div>
+      </aside>
+    </div>
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">站内搜索</h1>
+        <div class="widget-text">
+          <form onSubmit="return appDaily.submitSearch('')">
+            <p>
+              <input type="text" placeholder="search..." id="homeSearchInput">
+            </p>
+            <!-- <input type="submit" value="GO"> -->
+          </form>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+<!-- Footer -->
+<footer class="site-info">
+  <p>
+    <span>A Note &copy; 2018</span>
+    
+      <span class="split">|</span>
+      <span>Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> with Theme <a href="https://github.com/GallenHu/hexo-theme-Daily" target="_blank">Daily</a></span>
+    
+  </p>
+</footer>
+
+
+  <!-- After footer scripts -->
+  <!-- scripts -->
+<script src="/js/app.js"></script>
+
+
+
+
+
+</body>
+
+</html>

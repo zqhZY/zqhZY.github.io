@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<!-- Head tag -->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+  <!--Description-->
+  
+
+  <!--Author-->
+  
+  <meta name="author" content="Zico">
+  
+
+  <!--Open Graph Title-->
+  
+      <meta property="og:title" content="ASR: DNN训练"/>
+  
+  <!--Open Graph Description-->
+  
+  <!--Open Graph Site Name-->
+  <meta property="og:site_name" content="A Note"/>
+  <!--Type page-->
+  
+      <meta property="og:type" content="article" />
+  
+  <!--Page Cover-->
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <!-- Title -->
+  
+  <title>ASR: DNN训练 - A Note</title>
+
+
+  <link rel="shortcut icon" href="https://hexo.io/icon/favicon-96x96.png">
+
+  <!-- Custom CSS/Sass -->
+  <link rel="stylesheet" href="/css/style.css">
+
+  <!----------------------------
+  https://github.com/GallenHu/hexo-theme-Daily
+
+ _____            _   _
+|  __ \          (_) | |
+| |  | |   __ _   _  | |  _   _
+| |  | |  / _` | | | | | | | | |
+| |__| | | (_| | | | | | | |_| |
+|_____/   \__,_| |_| |_|  \__, |
+                          __/ |
+                         |___/
+
+    --------------------------->
+
+</head>
+
+
+<body>
+
+  <!-- Nav -->
+  <header class="site-header">
+  <div class="header-inside">
+    <div class="logo">
+      <a href="/" rel="home">
+        
+        <img src="https://hexo.io/logo.svg" alt="A Note" height="60">
+        
+      </a>
+    </div>
+    <!-- Navigation -->
+    <nav class="navbar">
+      <!-- Collect the nav links, forms, and other content for toggling -->
+      <div class="collapse">
+        <ul class="navbar-nav">
+          
+          
+            <li>
+              <a href="/.">
+                
+                  Home
+                
+              </a>
+            </li>
+          
+            <li>
+              <a href="/archives">
+                
+                  Archive
+                
+              </a>
+            </li>
+          
+        </ul>
+      </div>
+      <!-- /.navbar-collapse -->
+    </nav>
+    <div class="button-wrap">
+      <button class="menu-toggle">Primary Menu</button>
+    </div>
+  </div>
+</header>
+
+
+  <!-- Main Content -->
+  <div class="content-area">
+  <div class="post">
+    <!-- Post Content -->
+    <div class="container">
+      <article>
+        <!-- Title date & tags -->
+        <div class="post-header">
+          <h1 class="entry-title">
+            ASR: DNN训练
+            
+          </h1>
+          <p class="posted-on">
+          2017-04-01
+          </p>
+          <div class="tags-links">
+            
+              
+                <a href="/tags/ASR/" rel="tag">
+                  ASR
+                </a>
+              
+                <a href="/tags/DNN/" rel="tag">
+                  DNN
+                </a>
+              
+            
+          </div>
+        </div>
+        <!-- Post Main Content -->
+        <div class="entry-content has_line_number">
+          <p>本文通过简单kaldi源码，分析DNN训练声学模型时神经网络的输入与输出。在进行DNN训练之前需要用到之前GMM-HMM训练的模型，以训练好的mono模型为例，对模型进行维特比alignement（对齐），该部分主要完成了每个语音文件的<strong><em>帧到transition-id</em></strong>的映射。<br>  不妨查看对齐后的结果：<br><a id="more"></a><br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ copy-int-vector &quot;ark:gunzip -c ali.1.gz|&quot; ark,t:- | head -n 1</span><br><span class="line">speaker001_00003 4 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 16 15 15 15 18 890 889 889 889 889 889 889 892 894 893 893 893 86 88 87 90 89 89 89 89 89 89 89 89 89 89 89 89 89 89 194 193 196 195 195 198 197 386 385 385 385 385 385 385 385 385 388 387 387 390 902 901 901 904 903 906 905 905 905 905 905 905 905 905 905 905 905 914 913 913 916 918 917 917 917 917 917 917 752 751 751 751 751 751 754 753 753 753 753 753 753 753 753 756 755 755 926 925 928 927 927 927 927 927 927 927 930 929 929 929 929 929 929 929 929 4 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 16 18</span><br></pre></td></tr></table></figure></p>
+<p> 对于一个训练语音文件speaker001_00003，后面的每一个数字标示一个transition-id，同时每个数字对应一个特征向量(对应的向量可以copy-matrix查看，参考<a href="http://someth.duapp.com/2017/04/13/ASR-%E7%89%B9%E5%BE%81%E6%8F%90%E5%8F%96/" target="_blank" rel="noopener">特征提取</a>)。同样查看transition-id：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">$ show-transitions phones.txt final.mdl</span><br><span class="line"></span><br><span class="line">Transition-state 1: phone = sil hmm-state = 0 pdf = 0</span><br><span class="line"> Transition-id = 1 p = 0.966816 [self-loop]</span><br><span class="line"> Transition-id = 2 p = 0.01 [0 -&gt; 1]</span><br><span class="line"> Transition-id = 3 p = 0.01 [0 -&gt; 2]</span><br><span class="line"> Transition-id = 4 p = 0.013189 [0 -&gt; 3]</span><br><span class="line">Transition-state 2: phone = sil hmm-state = 1 pdf = 1</span><br><span class="line"> Transition-id = 5 p = 0.970016 [self-loop]</span><br><span class="line"> Transition-id = 6 p = 0.01 [1 -&gt; 2]</span><br><span class="line"> Transition-id = 7 p = 0.01 [1 -&gt; 3]</span><br><span class="line"> Transition-id = 8 p = 0.01 [1 -&gt; 4]</span><br><span class="line">Transition-state 3: phone = sil hmm-state = 2 pdf = 2</span><br><span class="line"> Transition-id = 9 p = 0.01 [2 -&gt; 1]</span><br><span class="line"> Transition-id = 10 p = 0.968144 [self-loop]</span><br><span class="line"> Transition-id = 11 p = 0.01 [2 -&gt; 3]</span><br><span class="line"> Transition-id = 12 p = 0.0118632 [2 -&gt; 4]</span><br><span class="line">Transition-state 4: phone = sil hmm-state = 3 pdf = 3</span><br><span class="line"> Transition-id = 13 p = 0.01 [3 -&gt; 1]</span><br><span class="line"> Transition-id = 14 p = 0.01 [3 -&gt; 2]</span><br><span class="line"> Transition-id = 15 p = 0.932347 [self-loop]</span><br><span class="line"> Transition-id = 16 p = 0.0476583 [3 -&gt; 4]</span><br><span class="line">Transition-state 5: phone = sil hmm-state = 4 pdf = 4</span><br><span class="line"> Transition-id = 17 p = 0.923332 [self-loop]</span><br><span class="line"> Transition-id = 18 p = 0.0766682 [4 -&gt; 5]</span><br><span class="line">Transition-state 6: phone = a1 hmm-state = 0 pdf = 5</span><br><span class="line"> Transition-id = 19 p = 0.889764 [self-loop]</span><br><span class="line"> Transition-id = 20 p = 0.110236 [0 -&gt; 1]</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+<p> 唯一的Transition-state对应唯一的pdf，其下又包括多个 Transition-id，<br> 接下来看神经网络的输入与输出到底是什么。这里以steps/nnet为例。追溯脚本到steps/nnet/train.sh，找到相关的命令：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">...</span><br><span class="line"> labels_tr=&quot;ark:ali-to-pdf $alidir/final.mdl \&quot;ark:gunzip -c $alidir/ali.*.gz |\&quot; ark:- | ali-to-post ark:- ark:- |&quot;</span><br><span class="line"></span><br><span class="line">...</span><br><span class="line">feats_tr=&quot;ark:copy-feats scp:$dir/train.scp ark:- |&quot;</span><br><span class="line">...</span><br><span class="line"># input-dim,</span><br><span class="line">  get_dim_from=$feature_transform</span><br><span class="line">  num_fea=$(feat-to-dim &quot;$feats_tr nnet-forward \&quot;$get_dim_from\&quot; ark:- ark:- |&quot; -)</span><br><span class="line"># output-dim,</span><br><span class="line">  num_tgt=$(hmm-info --print-args=false $alidir/final.mdl | grep pdfs | awk &apos;&#123; print $NF &#125;&apos;)</span><br><span class="line">...</span><br><span class="line"></span><br><span class="line">dnn)</span><br><span class="line"> utils/nnet/make_nnet_proto.py $proto_opts \</span><br><span class="line">   $&#123;bn_dim:+ --bottleneck-dim=$bn_dim&#125; \</span><br><span class="line">   $num_fea $num_tgt $hid_layers $hid_dim &gt;$nnet_proto</span><br><span class="line">  ;;</span><br></pre></td></tr></table></figure></p>
+<p> 从上面关键的几个神经网络的训练的准备阶段可以看出，神经网络的输入很清楚是变换后的特征向量（feats_tr），输出是labels_tr，下面单独运行上面的命令，来查看神经网络的输出（target）是什么。labels_tr的生成分两步：</p>
+<ul>
+<li>ali-to-pdf： 将上面对齐文件中的transition-id转化为对应的pdf-id.</li>
+<li>ali-to-post: 根据得到的pdf-id，生成[pdf, post]对，即pdf与其对应的后验概率。</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ ali-to-pdf final.mdl &quot;ark:gunzip -c ali.1.gz|&quot; ark,t:- | head -n 1</span><br><span class="line"> speaker001_00003 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 3 3 3 3 4 440 440 440 440 440 440 440 441 442 442 442 442 38 39 39 40 40 40 40 40 40 40 40 40 40 40 40 40 40 40 92 92 93 93 93 94 94 188 188 188 188 188 188 188 188 188 189 189 189 190 446 446 446 447 447 448 448 448 448 448 448 448 448 448 448 448 448 452 452 452 453 454 454 454 454 454 454 454 371 371 371 371 371 371 372 372 372 372 372 372 372 372 372 373 373 373 458 458 459 459 459 459 459 459 459 459 460 460 460 460 460 460 460 460 460 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 3 4</span><br></pre></td></tr></table></figure>
+<p>  观察前两帧，结合文章一开始，transition-id 分别为4和1，而对应的pdf均为0。对该结果再进行ali-to-post：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ ali-to-pdf final.mdl &quot;ark:gunzip -c ali.1.gz|&quot; ark,t:- | head -n 1 | ali-to-post ark,t:- ark,t:-</span><br><span class="line"> speaker001_00003 [ 0 1 ] [ 0 1 ] [ 0 1 ] [ 0 1 ] [ 0 1 ] [ 0 1 ] [ 0 1 ] [ 0 1 ] [ 0 1 ] [ 0 1 ] [ 0 1 ] [ 0 1 ] [ 0 1 ] [ 0 1 ] [ 0 1 ] ...... [ 3 1 ] [ 3 1 ] [ 3 1 ] [ 3 1 ] [ 4 1 ] [ 440 1 ] [ 440 1 ] [ 440 1 ] [ 440 1 ] [ 440 1 ] [ 440 1 ] [ 440 1 ] [ 441 1 ] [ 442 1 ] [ 442 1 ] [ 442 1 ] [ 442 1 ] [ 38 1 ] [ 39 1 ] [ 39 1 ] [ 40 1 ] [ 40 1 ] [ 40 1 ] [ 40 1 ] [ 40 1 ] [ 40 1 ] [ 40 1 ] [ 40 1 ] [ 40 1 ] [ 40 1 ] [ 40 1 ] [ 40 1 ] [ 40 1 ] [ 40 1 ] [ 40 1 ] [ 92 1 ] [ 92 1 ]...... [ 0 1 ] [ 0 1 ] [ 0 1 ] [ 0 1 ] [ 3 1 ] [ 4 1 ]</span><br></pre></td></tr></table></figure></p>
+<p>得到pdf-id以及相应的后验概率，这里均为1。</p>
+<p> 由此得到了训练数据以及对应的target label。进一步来看神经网络的输入与输出的维度，网络结构被utils/nnet/make_nnet_proto.py写到nnet_proto文件中，该Python脚本的两个重要参数 num_fea和num_tgt分别为神经网络的输入与输出的维度。其中num_fea是由feat-to-dim获得：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ feat-to-dim scp:../tri4b_dnn/train.scp ark,t:- | grep speaker001_00003 </span><br><span class="line">speaker001_00003 40</span><br></pre></td></tr></table></figure></p>
+<p>这里为fbank特征，维度为40，而在真正作为神经网络输入时，进一步对特征向量进行的变换，从源码steps/nnet/train.sh也可以看到splice参数（默认值为5），指定了对特征向量的变换：取对应帧前后5帧，拼成一个11帧组成的大向量（维度为440）。该部分特征变换的拓扑也被保存到final.feature_transform:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$ more final.feature_transform </span><br><span class="line">&lt;Nnet&gt; </span><br><span class="line">&lt;Splice&gt; 440 40 </span><br><span class="line">[ -5 -4 -3 -2 -1 0 1 2 3 4 5 ]</span><br><span class="line">&lt;!EndOfComponent&gt; </span><br><span class="line">...</span><br><span class="line">...</span><br></pre></td></tr></table></figure></p>
+<p> 后面在进行神经网络的训练时会使用该拓扑对特征向量进行变换，最终的神经网络输入维度为440。<br> 而num_tgt的维度则是通过hmm-info获得：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">$ hmm-info final.mdl</span><br><span class="line">number of phones 218</span><br><span class="line">number of pdfs 1026</span><br><span class="line">number of transition-ids 2834</span><br><span class="line">number of transition-states 1413</span><br><span class="line"></span><br><span class="line">$ hmm-info final.mdl |  grep pdfs | awk &apos;&#123; print $NF &#125;&apos;</span><br><span class="line">1026</span><br></pre></td></tr></table></figure></p>
+<p> 因此，看到神经网络的输出维度为1026，这时查看nnet_proto：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">&lt;AffineTransform&gt; &lt;InputDim&gt; 440 &lt;OutputDim&gt; 1024 &lt;BiasMean&gt; -2.000000 &lt;BiasRange&gt; 4.000000 &lt;ParamStddev&gt; 0.037344 &lt;MaxNorm&gt; 0.000000</span><br><span class="line">&lt;Sigmoid&gt; &lt;InputDim&gt; 1024 &lt;OutputDim&gt; 1024</span><br><span class="line">&lt;AffineTransform&gt; &lt;InputDim&gt; 1024 &lt;OutputDim&gt; 1024 &lt;BiasMean&gt; -2.000000 &lt;BiasRange&gt; 4.000000 &lt;ParamStddev&gt; 0.109375 &lt;MaxNorm&gt; 0.000000</span><br><span class="line">&lt;Sigmoid&gt; &lt;InputDim&gt; 1024 &lt;OutputDim&gt; 1024</span><br><span class="line">&lt;AffineTransform&gt; &lt;InputDim&gt; 1024 &lt;OutputDim&gt; 1024 &lt;BiasMean&gt; -2.000000 &lt;BiasRange&gt; 4.000000 &lt;ParamStddev&gt; 0.109375 &lt;MaxNorm&gt; 0.000000</span><br><span class="line">&lt;Sigmoid&gt; &lt;InputDim&gt; 1024 &lt;OutputDim&gt; 1024</span><br><span class="line">&lt;AffineTransform&gt; &lt;InputDim&gt; 1024 &lt;OutputDim&gt; 1024 &lt;BiasMean&gt; -2.000000 &lt;BiasRange&gt; 4.000000 &lt;ParamStddev&gt; 0.109375 &lt;MaxNorm&gt; 0.000000</span><br><span class="line">&lt;Sigmoid&gt; &lt;InputDim&gt; 1024 &lt;OutputDim&gt; 1024</span><br><span class="line">&lt;AffineTransform&gt; &lt;InputDim&gt; 1024 &lt;OutputDim&gt; 1026 &lt;BiasMean&gt; 0.000000 &lt;BiasRange&gt; 0.000000 &lt;ParamStddev&gt; 0.109322 &lt;LearnRateCoef&gt; 1.000000 &lt;BiasLearnRateCoef&gt; 0.100000</span><br><span class="line">&lt;Softmax&gt; &lt;InputDim&gt; 1026 &lt;OutputDim&gt; 1026</span><br></pre></td></tr></table></figure></p>
+<p> 这里可以看到神经网络的输入维度有40变为440，输出为pdf的个数（对应HMM状态的个数）。</p>
+<p> 如果继续追查代码，最后可以找到单次神经网络的训练实现，kaldi/src/nnetbin/nnet-train-frmshuff.cc：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Perform one iteration (epoch) of Neural Network training with mini-batch Stochastic Gradient Descent. The training targets are usually pdf-posteriors, prepared by ali-to-post.</span><br></pre></td></tr></table></figure></p>
+<p>继续分析代码，可以看到几个关键步骤：</p>
+<ul>
+<li>解析训练参数，配置网络</li>
+<li><p>读取特征向量和target label，输入为Matrix&lt; BaseFloat &gt;类型，输出为Posterior类型，即&lt;pdf-id, posterior&gt;对。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">// get feature / target pair,</span><br><span class="line">Matrix&lt;BaseFloat&gt; mat = feature_reader.Value();</span><br><span class="line">Posterior targets = targets_reader.Value(utt);</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>随机打乱训练数据，作为神经网络输入与期望输出：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">const CuMatrixBase&lt;BaseFloat&gt;&amp; nnet_in = feature_randomizer.Value();</span><br><span class="line">const Posterior&amp; nnet_tgt = targets_randomizer.Value();</span><br><span class="line">const Vector&lt;BaseFloat&gt;&amp; frm_weights = weights_randomizer.Value();</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>前向传播，计算估计值nnet_out</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">// forward pass,</span><br><span class="line">nnet.Propagate(nnet_in, &amp;nnet_out);</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>计算cost，这里支持交叉熵和平方差和multitask。结果为obj_diff</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">// evaluate objective function we&apos;ve chosen,</span><br><span class="line">if (objective_function == &quot;xent&quot;) &#123;</span><br><span class="line">   // gradients re-scaled by weights in Eval,</span><br><span class="line">   xent.Eval(frm_weights, nnet_out, nnet_tgt, &amp;obj_diff);</span><br><span class="line"> &#125; else if (objective_function == &quot;mse&quot;) &#123;</span><br><span class="line">   // gradients re-scaled by weights in Eval,</span><br><span class="line">   mse.Eval(frm_weights, nnet_out, nnet_tgt, &amp;obj_diff);</span><br><span class="line"> &#125;</span><br><span class="line"> ...</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>根据误差反向传播，更新参数</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">if (!crossvalidate) &#123;</span><br><span class="line">   // back-propagate, and do the update,</span><br><span class="line">   nnet.Backpropagate(obj_diff, NULL);</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>完成一次参数更新，继续迭代。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">total_frames += nnet_in.NumRows()，</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p>最终由调用该部分代码的/steps/nnet/train_scheduler.sh指定最大迭代次数max_iters或accept训练的模型，<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">accepting: the loss was better, or we had fixed learn-rate, or we had fixed epoch-number</span><br></pre></td></tr></table></figure></p>
+<h4 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h4><p>在进行DNN训练前，</p>
+<ul>
+<li>训练GMM-HMM模型，聚类，并得到音素（或状态）的后验。</li>
+<li>对语音数据进行对齐，这里得到语音文件按时间顺序transition-id到帧特征向量的对应。</li>
+<li>生成&lt; pdf-id, posterior &gt; 对作为训练目标target</li>
+<li>语音文件特征向量进行变换，这里取前后5帧，拼成一个11帧维度更高的特征向量，作为神经网络输入。</li>
+<li>神经网络输入变换后的特征向量，通过前向传播，经Softmax层，得到该帧特征对应每个pdf的概率预测值。</li>
+<li>对每个pdf根据&lt; pdf-id, posterior &gt;查到目标后验概率，与预测值求误差</li>
+<li>反向传播更新参数。</li>
+<li>不断迭代，直到达到最大训练次数，或模型经过cross validation得到较低的误差（loss）停止训练。</li>
+</ul>
+<p>解码时，用训练好的DNN-HMM模型，输入帧的特征向量，得到该帧为每个状态（对应pdf）的概率。</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/2159902-f55f453a6bc5548e.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="DNN_OUTPUT"></p>
+<p>其中 x_t 对应t时刻的观测值（输入），q_t=s_i 即表示t时刻的状态为 s_i。p(x_t) 为该观测值出现概率，对结果影响不大。p(s_i) 为 s_i 出现的先验概率，可以从语料库中统计得到。最终得到了与GMM相同的目的：HMM状态到观测帧特征向量的输出概率。就有了下面的示意图：</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/2159902-6d4060d9895e1c41.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="DNN_HMM"></p>
+<p>更多关注公众号：<br><img src="https://upload-images.jianshu.io/upload_images/2159902-e28220521b7ef499.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="wechat"></p>
+
+        </div>
+      </article>
+    </div>
+    <!-- Comments -->
+    <div class="container">
+      
+<section id="comment">
+  <!-- <h1 class="title">留言</h1> -->
+
+  
+</section>
+
+
+    </div>
+    <!-- Pre or Next -->
+    <div class="nav-links">
+      
+        <div class="nav-previous">
+          <a href="/2017/04/09/DNN声学建模笔记/" rel="prev"><span class="meta-arraw meta-arraw-left"></span> 上一页</a>
+        </div>
+      
+      
+        <div class="nav-next">
+          <a href="/2017/03/20/ASR-特征提取/" rel="prev">下一页 <span class="meta-arraw meta-arraw-right"></span></a>
+        </div>
+      
+    </div>
+
+  </div>
+</div>
+
+
+  <!-- Footer -->
+  <!-- Footer-widgets -->
+<div class="footer-widgets">
+  <div class="row inside-wrapper">
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">关于本站</h1>
+        <div class="custom-widget-content">
+          
+          <p align="left">分享日常学习，传播核心价值观，传播正能量。</p>
+        </div>
+      </aside>
+    </div>
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">与我联系</h1>
+        <div class="widget-text">
+          
+            
+              <a href="https://github.com/zqhZY" class="icon icon-github" target="_blank">github</a>
+            
+              <a href="zqingheng@163.com" class="icon icon-mail" target="_blank">mail</a>
+            
+          
+        </div>
+      </aside>
+    </div>
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">站内搜索</h1>
+        <div class="widget-text">
+          <form onSubmit="return appDaily.submitSearch('')">
+            <p>
+              <input type="text" placeholder="search..." id="homeSearchInput">
+            </p>
+            <!-- <input type="submit" value="GO"> -->
+          </form>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+<!-- Footer -->
+<footer class="site-info">
+  <p>
+    <span>A Note &copy; 2018</span>
+    
+      <span class="split">|</span>
+      <span>Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> with Theme <a href="https://github.com/GallenHu/hexo-theme-Daily" target="_blank">Daily</a></span>
+    
+  </p>
+</footer>
+
+
+  <!-- After footer scripts -->
+  <!-- scripts -->
+<script src="/js/app.js"></script>
+
+
+
+
+
+</body>
+
+</html>

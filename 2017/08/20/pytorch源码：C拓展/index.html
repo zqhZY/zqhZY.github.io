@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<!-- Head tag -->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+  <!--Description-->
+  
+
+  <!--Author-->
+  
+  <meta name="author" content="Zico">
+  
+
+  <!--Open Graph Title-->
+  
+      <meta property="og:title" content="pytorch源码：C拓展"/>
+  
+  <!--Open Graph Description-->
+  
+  <!--Open Graph Site Name-->
+  <meta property="og:site_name" content="A Note"/>
+  <!--Type page-->
+  
+      <meta property="og:type" content="article" />
+  
+  <!--Page Cover-->
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <!-- Title -->
+  
+  <title>pytorch源码：C拓展 - A Note</title>
+
+
+  <link rel="shortcut icon" href="https://hexo.io/icon/favicon-96x96.png">
+
+  <!-- Custom CSS/Sass -->
+  <link rel="stylesheet" href="/css/style.css">
+
+  <!----------------------------
+  https://github.com/GallenHu/hexo-theme-Daily
+
+ _____            _   _
+|  __ \          (_) | |
+| |  | |   __ _   _  | |  _   _
+| |  | |  / _` | | | | | | | | |
+| |__| | | (_| | | | | | | |_| |
+|_____/   \__,_| |_| |_|  \__, |
+                          __/ |
+                         |___/
+
+    --------------------------->
+
+</head>
+
+
+<body>
+
+  <!-- Nav -->
+  <header class="site-header">
+  <div class="header-inside">
+    <div class="logo">
+      <a href="/" rel="home">
+        
+        <img src="https://hexo.io/logo.svg" alt="A Note" height="60">
+        
+      </a>
+    </div>
+    <!-- Navigation -->
+    <nav class="navbar">
+      <!-- Collect the nav links, forms, and other content for toggling -->
+      <div class="collapse">
+        <ul class="navbar-nav">
+          
+          
+            <li>
+              <a href="/.">
+                
+                  Home
+                
+              </a>
+            </li>
+          
+            <li>
+              <a href="/archives">
+                
+                  Archive
+                
+              </a>
+            </li>
+          
+        </ul>
+      </div>
+      <!-- /.navbar-collapse -->
+    </nav>
+    <div class="button-wrap">
+      <button class="menu-toggle">Primary Menu</button>
+    </div>
+  </div>
+</header>
+
+
+  <!-- Main Content -->
+  <div class="content-area">
+  <div class="post">
+    <!-- Post Content -->
+    <div class="container">
+      <article>
+        <!-- Title date & tags -->
+        <div class="post-header">
+          <h1 class="entry-title">
+            pytorch源码：C拓展
+            
+          </h1>
+          <p class="posted-on">
+          2017-08-20
+          </p>
+          <div class="tags-links">
+            
+              
+            
+          </div>
+        </div>
+        <!-- Post Main Content -->
+        <div class="entry-content has_line_number">
+          <p><img src="http://upload-images.jianshu.io/upload_images/2159902-f06f3ab8dff7c9c0.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="head"></p>
+<p>读了pytorch的Python部分源码，不断追溯代码，很多类都会继承“_C”模块里的内容，如：<br><a id="more"></a><br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">class IntTensor(_C.IntTensorBase, _TensorBase)</span><br><span class="line">    def is_signed(self):</span><br><span class="line">        return True</span><br><span class="line"></span><br><span class="line">    @classmethod</span><br><span class="line">    def storage_type(cls):</span><br><span class="line">        return IntStorage</span><br></pre></td></tr></table></figure></p>
+<p> 其中_TensorBase为Python类，定义了多种Tensor类的共同操作。本文重点看_C.IntTensorBase。主要尝试回答自己的两个疑问：</p>
+<ul>
+<li>C扩展中的各种Tensor是如何定义和实现的。</li>
+<li>上层的Python是如何调用C中定义的类（或结构体）。</li>
+</ul>
+<p>事实证明，看似简单的两个问题并不那么简单，直接读Pytorch中C的源码完全不知所云，查了一些资料才明白自己严重需要预备知识：</p>
+<ul>
+<li>Python如何拓展C库</li>
+<li>Python的实现机制</li>
+</ul>
+<p>这里跳过预备知识直入正题，相关链接整理在文章末尾。为了解答自己的疑惑，同样结合一个简单的例子：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">t = torch.IntTensor()</span><br></pre></td></tr></table></figure></p>
+<p> 下面尝试说明这条语句的背后底层做了哪些事情。再正式开始之前，需要先搞明白pytorch C拓展部分的代码生成套路。</p>
+<h3 id="Python-C拓展"><a href="#Python-C拓展" class="headerlink" title="Python C拓展"></a>Python C拓展</h3><p> 和普通的CPython方式拓展类似，下面主要看pytorch中的拓展模块“_C”的定义和相应其他模块的添加方式。pytorch中的拓展模块定义代码主要在torch/csrc/Module.cpp中，在预备知识中熟悉Python如何拓展C后，直接在Module.cpp找到感兴趣的初始化部分：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">#if PY_MAJOR_VERSION == 2</span><br><span class="line">PyMODINIT_FUNC init_C()</span><br><span class="line">#else</span><br><span class="line">PyMODINIT_FUNC PyInit__C()</span><br><span class="line">#endif</span><br><span class="line">&#123;</span><br><span class="line">...</span><br><span class="line">#if PY_MAJOR_VERSION == 2</span><br><span class="line">  ASSERT_TRUE(module = Py_InitModule(&quot;torch._C&quot;, methods.data()));</span><br><span class="line">#else</span><br><span class="line">  static struct PyModuleDef torchmodule = &#123;</span><br><span class="line">     PyModuleDef_HEAD_INIT,</span><br><span class="line">     &quot;torch._C&quot;,</span><br><span class="line">     NULL,</span><br><span class="line">     -1,</span><br><span class="line">     methods.data()</span><br><span class="line">  &#125;;</span><br><span class="line">  ASSERT_TRUE(module = PyModule_Create(&amp;torchmodule));</span><br><span class="line">#endif</span><br><span class="line">  ...</span><br><span class="line"></span><br><span class="line">  ASSERT_TRUE(THPDoubleTensor_init(module));</span><br><span class="line">  ASSERT_TRUE(THPFloatTensor_init(module));</span><br><span class="line">  ASSERT_TRUE(THPHalfTensor_init(module));</span><br><span class="line">  ASSERT_TRUE(THPLongTensor_init(module));</span><br><span class="line">  ASSERT_TRUE(THPIntTensor_init(module));</span><br><span class="line">  ASSERT_TRUE(THPShortTensor_init(module));</span><br><span class="line">  ASSERT_TRUE(THPCharTensor_init(module));</span><br><span class="line">  ASSERT_TRUE(THPByteTensor_init(module));</span><br><span class="line">...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>在编译过程中PyMODINIT_FUNC方法被调用，完成了”torch._C”的定义，接着就是各种类型Tensor的初始化函数调用，该部分在后面详细来看。<br>和普通C拓展套路一致，最终在编译阶段的setup.py文件中,声明Extension 执行setup加入拓展和用到的lib:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">C = Extension(&quot;torch._C&quot;,</span><br><span class="line">              libraries=main_libraries,</span><br><span class="line">              sources=main_sources,</span><br><span class="line">              language=&apos;c++&apos;,</span><br><span class="line">              extra_compile_args=main_compile_args + extra_compile_args,</span><br><span class="line">              include_dirs=include_dirs,</span><br><span class="line">              library_dirs=library_dirs,</span><br><span class="line">              extra_link_args=extra_link_args + main_link_args + [make_relative_rpath(&apos;lib&apos;)],</span><br><span class="line">              )</span><br><span class="line">extensions.append(C)</span><br><span class="line">...</span><br><span class="line">...</span><br><span class="line">setup(name=&quot;torch&quot;, version=version,</span><br><span class="line">      description=&quot;Tensors and Dynamic neural networks in Python with strong GPU acceleration&quot;,</span><br><span class="line">      ext_modules=extensions,</span><br><span class="line">      cmdclass=cmdclass,</span><br><span class="line">      packages=packages,</span><br><span class="line">      package_data=&#123;&apos;torch&apos;: [</span><br><span class="line">          &apos;lib/*.so*&apos;, &apos;lib/*.dylib*&apos;,</span><br><span class="line">          &apos;lib/torch_shm_manager&apos;,</span><br><span class="line">          &apos;lib/*.h&apos;,</span><br><span class="line">          &apos;lib/include/TH/*.h&apos;, &apos;lib/include/TH/generic/*.h&apos;,</span><br><span class="line">          &apos;lib/include/THC/*.h&apos;, &apos;lib/include/THC/generic/*.h&apos;,</span><br><span class="line">          &apos;lib/include/ATen/*.h&apos;,</span><br><span class="line">      ]&#125;,</span><br><span class="line">      install_requires=[&apos;pyyaml&apos;, &apos;numpy&apos;],</span><br><span class="line">      )</span><br></pre></td></tr></table></figure></p>
+<h3 id="代码生成"><a href="#代码生成" class="headerlink" title="代码生成"></a>代码生成</h3><p> 一开始阅读代码，<strong>并没有发现IntTensor部分的实现</strong>，如上面PyMODINIT_FUNC函数中的THPIntTensor_init(module)，和最开始提到的IntTensorBase。另一个奇怪的是很多文件同时在根目录（pytorch/torch/csrc/）和generic目录下出现。以根目录下Tensor.cpp为例：<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;Python.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;structmember.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> THP_HOST_HALF</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdbool.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;vector&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stack&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;tuple&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;TH/THMath.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">"torch/csrc/THP.h"</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">"torch/csrc/copy_utils.h"</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">"torch/csrc/DynamicTypes.h"</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">//generic_include TH torch/csrc/generic/Tensor.cpp</span></span><br></pre></td></tr></table></figure></p>
+<p>这个cpp文件和一般的cpp文件不同，注意最后一句，在pytorch的setup.py中准备source列表时会调用：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">main_sources += split_types(&quot;torch/csrc/Tensor.cpp&quot;)</span><br></pre></td></tr></table></figure></p>
+<p>其中split_types在pytorch/tools/setup_helpers/目录下实现，主要实现了两个功能：</p>
+<ul>
+<li>重命名Tensor.cpp为Tensor[Type].cpp，其中Type为Float、Int等</li>
+<li>各个Tensor[Type].cpp内容的最后一行内容改变为：</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">#define TH_GENERIC_FILE &quot;torch/src/generic/Tensor.cpp&quot;</span><br><span class="line">#include &quot;TH/THGenerate[Type]Type.h&quot;</span><br></pre></td></tr></table></figure>
+<p> 在lib/TH下则可以看到对应的THGenerate[Type]Type.h，如TH/THGenerateIntType.h：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">#ifndef TH_GENERIC_FILE</span><br><span class="line">#error &quot;You must define TH_GENERIC_FILE before including THGenerateIntType.h&quot;</span><br><span class="line">#endif</span><br><span class="line"></span><br><span class="line">#define real int32_t</span><br><span class="line">#define ureal uint32_t</span><br><span class="line">#define accreal int64_t</span><br><span class="line">#define TH_CONVERT_REAL_TO_ACCREAL(_val) (accreal)(_val)</span><br><span class="line">#define TH_CONVERT_ACCREAL_TO_REAL(_val) (real)(_val)</span><br><span class="line">#define Real Int</span><br><span class="line">#define THInf INT_MAX</span><br><span class="line">#define TH_REAL_IS_INT</span><br><span class="line">#line 1 TH_GENERIC_FILE</span><br><span class="line">#include TH_GENERIC_FILE</span><br><span class="line">#undef real</span><br><span class="line">#undef ureal</span><br><span class="line">#undef accreal</span><br><span class="line">#undef Real</span><br><span class="line">#undef THInf</span><br><span class="line">#undef TH_REAL_IS_INT</span><br><span class="line">#undef TH_CONVERT_REAL_TO_ACCREAL</span><br><span class="line">#undef TH_CONVERT_ACCREAL_TO_REAL</span><br><span class="line"></span><br><span class="line">#ifndef THGenerateManyTypes</span><br><span class="line">#undef TH_GENERIC_FILE</span><br><span class="line">#endif</span><br></pre></td></tr></table></figure></p>
+<p> 头文件中有两个重要的宏定义：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">#define real int32_t</span><br><span class="line">#define Real Int</span><br></pre></td></tr></table></figure></p>
+<p> 而在对应的Tensor.h中则有下面的宏定义:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">#ifndef THP_TENSOR_INC</span><br><span class="line">#define THP_TENSOR_INC</span><br><span class="line"></span><br><span class="line">#define THPTensor                   TH_CONCAT_3(THP,Real,Tensor)</span><br><span class="line">#define THPTensorStr                TH_CONCAT_STRING_3(torch.,Real,Tensor)</span><br><span class="line">#define THPTensorClass              TH_CONCAT_3(THP,Real,TensorClass)</span><br><span class="line">#define THPTensor_(NAME)            TH_CONCAT_4(THP,Real,Tensor_,NAME)</span><br><span class="line">......</span><br></pre></td></tr></table></figure></p>
+<p>其中TH_CONCAT_*同样是宏定义，实现拼接字符串的功能，如对于IntTensor类型会有：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">THPTensor_(init) will be convert to THPIntTensor_init</span><br></pre></td></tr></table></figure></p>
+<p>而类似THPTensor_(NAME)格式的字串在generic目录下的代码实现中大量出现。</p>
+<blockquote>
+<p>这里的命名值得一提，源码中会经常遇到THP和TH前缀的变量，前者是pytorch中的变量前缀，区别于后者，源自Torch库中的对应变量。pytorch底层实现中调用了大量的Torch库。</p>
+</blockquote>
+<h3 id="THPTensor实现"><a href="#THPTensor实现" class="headerlink" title="THPTensor实现"></a>THPTensor实现</h3><p> 在弄清楚上面两部分之后，再看generic目录下的代码就清晰很多了，还是以THPIntTensor为例来看。这里的THPIntTensor实际上是pytorch拓展的一个新Python类型。如果接触过Python源码的话会很清楚，定义一个新类型需要：</p>
+<ul>
+<li>定义该对象包括哪些东西</li>
+<li>为该对象定义类型</li>
+</ul>
+<p>下面通过对比Python和pytorch的对象机制来简单说明：</p>
+<h4 id="Python对象机制"><a href="#Python对象机制" class="headerlink" title="Python对象机制"></a>Python对象机制</h4><p>以C实现的Python为例，对于int类型，需要为其定义该类型：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">typedef struct tagPyIntObject</span><br><span class="line">&#123;</span><br><span class="line">    PyObject_HEAD;</span><br><span class="line">    int value;</span><br><span class="line">&#125; PyIntObject;</span><br></pre></td></tr></table></figure></p>
+<p>对应类型有：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">PyTypeObject PyInt_Type =</span><br><span class="line">&#123;</span><br><span class="line">     PyObject_HEAD_INIT(&amp;PyType_Type),</span><br><span class="line">     &quot;int&quot;,</span><br><span class="line">     ...</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<p>其中PyObject_HEAD为宏定义，定义了所有对象所共有的部分，包括对象的引用计数和对象类型等共有信息，这也是Python中多态的来源。PyObject_HEAD_INIT是类型初始化的宏定义，简单来看如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">#define PyObject_HEAD \</span><br><span class="line"> int refCount;\</span><br><span class="line"> struct tagPyTypeObject *type</span><br><span class="line"></span><br><span class="line"> #define PyObject_HEAD_INIT(typePtr)\</span><br><span class="line"> 0, typePtr</span><br></pre></td></tr></table></figure></p>
+<blockquote>
+<p>如果对Python源码很感兴趣，强烈推荐陈儒（Robert Chen）的《Python源码剖析》，很是精炼。按照书中的介绍，我这里也实现了一个傻瓜Python以供参考：<a href="https://github.com/zqhZY/smallpy" target="_blank" rel="noopener">https://github.com/zqhZY/smallpy</a></p>
+</blockquote>
+<h4 id="pytorch对象机制"><a href="#pytorch对象机制" class="headerlink" title="pytorch对象机制"></a>pytorch对象机制</h4><p> pytorch拓展的Tensor类型与Python的一般类型的定义类似，generic目录下的Tensor.h中有如下定义：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">struct THPTensor &#123;</span><br><span class="line">  PyObject_HEAD</span><br><span class="line">  // Invariant: After __new__ (not __init__), this field is always non-NULL.</span><br><span class="line">  THTensor *cdata;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<p>同样的简洁明了，一个PyObject_HEAD头，一个THTensor类型指针指向具体内容。这里的THTensor类型就涉及到了TH库，也是源码的最底层的C语言实现。TH库的内容到最后再看，这里简单理解为一个类型。<strong>同样值得一提</strong>，根据上面的内容，这里的THPTensor和THTensor最终会转换成不同的类型：如Int对应THPIntTensor和THIntTensor。<br>同样，对于THPTensor对象也对应一个类型对象的定义，generic/Tensor.cpp中有：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">PyTypeObject THPTensorType = &#123;</span><br><span class="line">  PyVarObject_HEAD_INIT(NULL, 0)</span><br><span class="line">  &quot;torch._C.&quot; THPTensorBaseStr,          /* tp_name */</span><br><span class="line">  sizeof(THPTensor),                     /* tp_basicsize */</span><br><span class="line">  0,                                     /* tp_itemsize */</span><br><span class="line">  (destructor)THPTensor_(dealloc),       /* tp_dealloc */</span><br><span class="line">  0,                                     /* tp_print */</span><br><span class="line">  ...</span><br><span class="line">  ...</span><br><span class="line">  0,                                     /* tp_alloc */</span><br><span class="line">  THPTensor_(pynew),                     /* tp_new */</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<p>结构体中包括了很多指针，这里看最后的THPTensor_(pynew)，该方法在该类型对象创建时调用，对应Python层面的<strong><strong>new</strong></strong>函数。找到该函数：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">static PyObject * THPTensor_(pynew)(PyTypeObject *type, PyObject *args, PyObject *kwargs)</span><br><span class="line">&#123;</span><br><span class="line">	...</span><br><span class="line">	// torch.Tensor()</span><br><span class="line">	if (num_args == 0) &#123;</span><br><span class="line">	 self-&gt;cdata = THPTensor_(_new)();</span><br><span class="line">	 return (PyObject*)self.release();</span><br><span class="line">	&#125;</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>THPTensor_(pynew)先是为THPTensor申请内存，之后根据参数不同创建并初始化。<br>这里简单看代码中不传参数情况下创建Tensor调用THPTensor_(_new):<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">static THTensor* THPTensor_(_new)()</span><br><span class="line">&#123;</span><br><span class="line">  THTensorPtr tensor(THTensor_(new)(LIBRARY_STATE_NOARGS));</span><br><span class="line">  if (!tensor-&gt;storage) &#123;</span><br><span class="line">    tensor-&gt;storage = THStorage_(new)(LIBRARY_STATE_NOARGS);</span><br><span class="line">  &#125;</span><br><span class="line">  return tensor.release();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>该函数返回THTensor类型，方法中调用的THTensor_(new)和THStorage_(new)均为TH库中的内容，实现底层封装和内存申请。其中Storage保存了Tensor的值，之后具体看。</p>
+<h3 id="Python-C拓展Tensor类型"><a href="#Python-C拓展Tensor类型" class="headerlink" title="Python C拓展Tensor类型"></a>Python C拓展Tensor类型</h3><p> 看完 Tensor类型的初始化后，接下来是看如何把各种Tensor类型加入到”_C“模块下供上层Python调用。这里回到一开始的torch/csrc/Module.cpp中PyMODINIT_FUNC方法的一系列初始化：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">ASSERT_TRUE(THPDoubleTensor_init(module));</span><br><span class="line">ASSERT_TRUE(THPFloatTensor_init(module));</span><br><span class="line">ASSERT_TRUE(THPHalfTensor_init(module));</span><br><span class="line">ASSERT_TRUE(THPLongTensor_init(module));</span><br><span class="line">ASSERT_TRUE(THPIntTensor_init(module));</span><br><span class="line">ASSERT_TRUE(THPShortTensor_init(module));</span><br><span class="line">ASSERT_TRUE(THPCharTensor_init(module));</span><br><span class="line">ASSERT_TRUE(THPByteTensor_init(module));</span><br></pre></td></tr></table></figure></p>
+<p>该部分初始化对应到generic/Tensor.cpp中的THPTensor_(init):</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">bool THPTensor_(init)(PyObject *module)</span><br><span class="line">&#123;</span><br><span class="line">  ...</span><br><span class="line">  THPTensorType.tp_methods = THPTensor_(methods);</span><br><span class="line">  ...</span><br><span class="line">  PyModule_AddObject(module, THPTensorBaseStr, (PyObject *)&amp;THPTensorType);</span><br><span class="line">  THPTensor_(initCopyMethods)();</span><br><span class="line">  return true;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p> 该段代码有两点需要解释，一是Tensor模块的添加，二是Tensor对象的方法集的指定。</p>
+<h4 id="Tensor模块添加"><a href="#Tensor模块添加" class="headerlink" title="Tensor模块添加"></a>Tensor模块添加</h4><p>PyModule_AddObject函数为Python C拓展API：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">int PyModule_AddObject(PyObject *module, const char *name, PyObject *value)</span><br><span class="line">Add an object to module as name.</span><br></pre></td></tr></table></figure></p>
+<p> 而THPTensorBaseStr则是另外一个宏定义：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">#define THPTensorBaseStr            TH_CONCAT_STRING_2(Real,TensorBase)</span><br></pre></td></tr></table></figure></p>
+<p>同样是字符串拼接宏,对不同类型THPTensorBaseStr最终转换成[Type]TensorBase，再回到文章最开始的：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">class IntTensor(_C.IntTensorBase, _TensorBase)</span><br></pre></td></tr></table></figure></p>
+<p> 由此得到了Python层可以继承的_C.IntTensorBase。</p>
+<h4 id="Tensor类型添加方法"><a href="#Tensor类型添加方法" class="headerlink" title="Tensor类型添加方法"></a>Tensor类型添加方法</h4><p> 参考Pyhton实现，在定义一个对象后，对应的类型结构体中包含一个指针，指向该类型可以调用的方法集，例如list类型的用法：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">a = []</span><br><span class="line">a.append(1)</span><br></pre></td></tr></table></figure></p>
+<p>在pytorch的Tensor类型中该指针即为tp_methods，该指针的赋值，如上面THPTensor_(init)中:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">THPTensorType.tp_methods = THPTensor_(methods);</span><br></pre></td></tr></table></figure></p>
+<p>奇怪的是THPTensor_(methods)并不能在源码中找到，而在generic/methods可以看到一些.cwrap文件，如对ones函数有：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">[[</span><br><span class="line">  name: ones</span><br><span class="line">  variants:</span><br><span class="line">    - function</span><br><span class="line">  auto_gpu: False</span><br><span class="line">  return: argument 0</span><br><span class="line">  arguments:</span><br><span class="line">    - arg: THTensor* result</span><br><span class="line">      output: True</span><br><span class="line">    - arg: THSize* size</span><br><span class="line">      long_args: True</span><br><span class="line">]]</span><br></pre></td></tr></table></figure></p>
+<p>pytorch中自己实现了插件，根据这种YAML格式文本对TH库代码进行封装生成对应代码，插件代码在tools/cwrap/plugins。如addmv_函数对应生成的内容：<br><a href="https://gist.github.com/killeent/c00de46c2a896335a52552604cc4d74b" target="_blank" rel="noopener">https://gist.github.com/killeent/c00de46c2a896335a52552604cc4d74b</a> 。 </p>
+<h3 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h3><p> 到此，主要说明了pytorch中Tensor类型的定义及其模块拓展机制，可以使上层的Python调用C拓展的类型和相应方法。可以看到，pytorch中使用了代码生成方式，只定义一个模板，不同类型的Tensor对象通过该模板生成，避免了大量重复代码，虽然一开始一头雾水，但确实比较巧妙。</p>
+<p>篇幅原因，这里并没有深入去看TH库部分的代码，pytorch对torch库做了CPython类封装，重用了大量代码，TH中主要的一个部分是THTensor的实现，后面再继续整理TH部分的代码。</p>
+<h4 id="参考文献"><a href="#参考文献" class="headerlink" title="参考文献"></a>参考文献</h4><p><a href="http://book.pythontips.com/en/latest/python_c_extension.html" target="_blank" rel="noopener">Python拓展C</a><br><a href="https://pan.baidu.com/s/1c2dFCxa" target="_blank" rel="noopener">Python源码剖析精简版</a><br><a href="https://gist.github.com/killeent/4675635b40b61a45cac2f95a285ce3c0" target="_blank" rel="noopener">A Tour of PyTorch Internals (Part I)</a><br><a href="https://apaszke.github.io/torch-internals.html" target="_blank" rel="noopener">A quick tour of Torch internals</a></p>
+<p>更多关注公众号：<br><img src="https://upload-images.jianshu.io/upload_images/2159902-e28220521b7ef499.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="wechat"></p>
+
+        </div>
+      </article>
+    </div>
+    <!-- Comments -->
+    <div class="container">
+      
+<section id="comment">
+  <!-- <h1 class="title">留言</h1> -->
+
+  
+</section>
+
+
+    </div>
+    <!-- Pre or Next -->
+    <div class="nav-links">
+      
+        <div class="nav-previous">
+          <a href="/2017/10/07/Spacy-使用中文WordVector/" rel="prev"><span class="meta-arraw meta-arraw-left"></span> 上一页</a>
+        </div>
+      
+      
+        <div class="nav-next">
+          <a href="/2017/08/01/pytorch源码：Python层/" rel="prev">下一页 <span class="meta-arraw meta-arraw-right"></span></a>
+        </div>
+      
+    </div>
+
+  </div>
+</div>
+
+
+  <!-- Footer -->
+  <!-- Footer-widgets -->
+<div class="footer-widgets">
+  <div class="row inside-wrapper">
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">关于本站</h1>
+        <div class="custom-widget-content">
+          
+          <p align="left">分享日常学习，传播核心价值观，传播正能量。</p>
+        </div>
+      </aside>
+    </div>
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">与我联系</h1>
+        <div class="widget-text">
+          
+            
+              <a href="https://github.com/zqhZY" class="icon icon-github" target="_blank">github</a>
+            
+              <a href="zqingheng@163.com" class="icon icon-mail" target="_blank">mail</a>
+            
+          
+        </div>
+      </aside>
+    </div>
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">站内搜索</h1>
+        <div class="widget-text">
+          <form onSubmit="return appDaily.submitSearch('')">
+            <p>
+              <input type="text" placeholder="search..." id="homeSearchInput">
+            </p>
+            <!-- <input type="submit" value="GO"> -->
+          </form>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+<!-- Footer -->
+<footer class="site-info">
+  <p>
+    <span>A Note &copy; 2018</span>
+    
+      <span class="split">|</span>
+      <span>Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> with Theme <a href="https://github.com/GallenHu/hexo-theme-Daily" target="_blank">Daily</a></span>
+    
+  </p>
+</footer>
+
+
+  <!-- After footer scripts -->
+  <!-- scripts -->
+<script src="/js/app.js"></script>
+
+
+
+
+
+</body>
+
+</html>

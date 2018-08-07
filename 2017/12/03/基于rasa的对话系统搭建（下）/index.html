@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<!-- Head tag -->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+  <!--Description-->
+  
+
+  <!--Author-->
+  
+  <meta name="author" content="Zico">
+  
+
+  <!--Open Graph Title-->
+  
+      <meta property="og:title" content="基于rasa的对话系统搭建（下）"/>
+  
+  <!--Open Graph Description-->
+  
+  <!--Open Graph Site Name-->
+  <meta property="og:site_name" content="A Note"/>
+  <!--Type page-->
+  
+      <meta property="og:type" content="article" />
+  
+  <!--Page Cover-->
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <!-- Title -->
+  
+  <title>基于rasa的对话系统搭建（下） - A Note</title>
+
+
+  <link rel="shortcut icon" href="https://hexo.io/icon/favicon-96x96.png">
+
+  <!-- Custom CSS/Sass -->
+  <link rel="stylesheet" href="/css/style.css">
+
+  <!----------------------------
+  https://github.com/GallenHu/hexo-theme-Daily
+
+ _____            _   _
+|  __ \          (_) | |
+| |  | |   __ _   _  | |  _   _
+| |  | |  / _` | | | | | | | | |
+| |__| | | (_| | | | | | | |_| |
+|_____/   \__,_| |_| |_|  \__, |
+                          __/ |
+                         |___/
+
+    --------------------------->
+
+</head>
+
+
+<body>
+
+  <!-- Nav -->
+  <header class="site-header">
+  <div class="header-inside">
+    <div class="logo">
+      <a href="/" rel="home">
+        
+        <img src="https://hexo.io/logo.svg" alt="A Note" height="60">
+        
+      </a>
+    </div>
+    <!-- Navigation -->
+    <nav class="navbar">
+      <!-- Collect the nav links, forms, and other content for toggling -->
+      <div class="collapse">
+        <ul class="navbar-nav">
+          
+          
+            <li>
+              <a href="/.">
+                
+                  Home
+                
+              </a>
+            </li>
+          
+            <li>
+              <a href="/archives">
+                
+                  Archive
+                
+              </a>
+            </li>
+          
+        </ul>
+      </div>
+      <!-- /.navbar-collapse -->
+    </nav>
+    <div class="button-wrap">
+      <button class="menu-toggle">Primary Menu</button>
+    </div>
+  </div>
+</header>
+
+
+  <!-- Main Content -->
+  <div class="content-area">
+  <div class="post">
+    <!-- Post Content -->
+    <div class="container">
+      <article>
+        <!-- Title date & tags -->
+        <div class="post-header">
+          <h1 class="entry-title">
+            基于rasa的对话系统搭建（下）
+            
+          </h1>
+          <p class="posted-on">
+          2017-12-03
+          </p>
+          <div class="tags-links">
+            
+              
+                <a href="/tags/NLP/" rel="tag">
+                  NLP
+                </a>
+              
+                <a href="/tags/chatbot/" rel="tag">
+                  chatbot
+                </a>
+              
+            
+          </div>
+        </div>
+        <!-- Post Main Content -->
+        <div class="entry-content has_line_number">
+          <p>基于上文训练的自然理解模型，这里介绍使用rasa core 的online leaning 进行对话决策的训练，在进行对话模块训练之前，需要准备两个文件：</p>
+<ul>
+<li>domain.yml # 定义对话所有的意图、槽、实体和系统可能采取的action</li>
+<li>story.md # 对话训练语料， 开始可以用于预训练对话模型，后期加入在线学习过程中生成的语料，更新完善。<a id="more"></a>
+<h4 id="domain文件准备"><a href="#domain文件准备" class="headerlink" title="domain文件准备"></a>domain文件准备</h4></li>
+</ul>
+<p>准备领域文件，需要考虑实际场景，任务型对话的对话生成（NLG）采用模板方法简单实用，rasa core 对模板有很好的支持，同样可以在domain文件里定义， 本项目的domian文件如下：</p>
+<p>mobile_domain.yml:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br></pre></td><td class="code"><pre><span class="line">slots:</span><br><span class="line">  item:</span><br><span class="line">    type: text</span><br><span class="line">  time:</span><br><span class="line">    type: text</span><br><span class="line">  phone_number:</span><br><span class="line">    type: text</span><br><span class="line">  price:</span><br><span class="line">    type: text</span><br><span class="line"></span><br><span class="line">intents:</span><br><span class="line">  - greet</span><br><span class="line">  - confirm</span><br><span class="line">  - goodbye</span><br><span class="line">  - thanks</span><br><span class="line">  - inform_item</span><br><span class="line">  - inform_package</span><br><span class="line">  - inform_time</span><br><span class="line">  - request_management</span><br><span class="line">  - request_search</span><br><span class="line">  - deny</span><br><span class="line">  - inform_current_phone</span><br><span class="line">  - inform_other_phone</span><br><span class="line"></span><br><span class="line">entities:</span><br><span class="line">  - item</span><br><span class="line">  - time</span><br><span class="line">  - phone_number</span><br><span class="line">  - price</span><br><span class="line"></span><br><span class="line">templates:</span><br><span class="line">  utter_greet:</span><br><span class="line">    - &quot;您好!，我是机器人小热，很高兴为您服务。&quot;</span><br><span class="line">    - &quot;你好!，我是小热，可以帮您办理流量套餐，话费查询等业务。&quot;</span><br><span class="line">    - &quot;hi!，人家是小热，有什么可以帮您吗。&quot;</span><br><span class="line">  utter_goodbye:</span><br><span class="line">    - &quot;再见，为您服务很开心&quot;</span><br><span class="line">    - &quot;Bye， 下次再见&quot;</span><br><span class="line">  utter_default:</span><br><span class="line">    - &quot;您说什么&quot;</span><br><span class="line">    - &quot;您能再说一遍吗，我没听清&quot;</span><br><span class="line">  utter_thanks:</span><br><span class="line">    - &quot;不用谢&quot;</span><br><span class="line">    - &quot;我应该做的&quot;</span><br><span class="line">    - &quot;您开心我就开心&quot;</span><br><span class="line">  utter_ask_morehelp:</span><br><span class="line">    - &quot;还有什么能帮您吗&quot;</span><br><span class="line">    - &quot;您还想干什么&quot;</span><br><span class="line">  utter_ask_time:</span><br><span class="line">    - &quot;你想查哪个时间段的&quot;</span><br><span class="line">    - &quot;你想查几月份的&quot;</span><br><span class="line">  utter_ask_package:</span><br><span class="line">    - &quot;我们现在支持办理流量套餐：套餐一：二十元包月三十兆；套餐二：四十元包月八十兆，请问您需要哪个？&quot;</span><br><span class="line">    - &quot;我们有如下套餐供您选择：套餐一：二十元包月三十兆；套餐二：四十元包月八十兆，请问您需要哪个？&quot;</span><br><span class="line">  utter_ack_management:</span><br><span class="line">    - &quot;已经为您办理好了&#123;item&#125;&quot;</span><br><span class="line"></span><br><span class="line">actions:</span><br><span class="line">  - utter_greet</span><br><span class="line">  - utter_goodbye</span><br><span class="line">  - utter_default</span><br><span class="line">  - utter_thanks</span><br><span class="line">  - utter_ask_morehelp</span><br><span class="line">  - utter_ask_time</span><br><span class="line">  - utter_ask_package</span><br><span class="line">  - utter_ack_management</span><br><span class="line">  - bot.ActionSearchConsume</span><br></pre></td></tr></table></figure></p>
+<p>rasa core 同样支持自定义action，用于查库和访问外部接口，如这里的bot.ActionSearchConsume，在bot.py里实现，模拟了查库行为：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">class ActionSearchConsume(Action):</span><br><span class="line">    def name(self):</span><br><span class="line">        return &apos;action_search_consume&apos;</span><br><span class="line"></span><br><span class="line">    def run(self, dispatcher, tracker, domain):</span><br><span class="line">        item = tracker.get_slot(&quot;item&quot;)</span><br><span class="line">        item = extract_item(item)</span><br><span class="line">        if item is None:</span><br><span class="line">            dispatcher.utter_message(&quot;您好，我现在只会查话费和流量&quot;)</span><br><span class="line">            dispatcher.utter_message(&quot;你可以这样问我：“帮我查话费”&quot;)</span><br><span class="line">            return []</span><br><span class="line"></span><br><span class="line">        time = tracker.get_slot(&quot;time&quot;)</span><br><span class="line">        if time is None:</span><br><span class="line">            dispatcher.utter_message(&quot;您想查询哪个月的消费？&quot;)</span><br><span class="line">            return []</span><br><span class="line">        # query database here using item and time as key. but you may normalize time format first.</span><br><span class="line">        dispatcher.utter_message(&quot;好，请稍等&quot;)</span><br><span class="line">        if item == &quot;流量&quot;:</span><br><span class="line">            dispatcher.utter_message(&quot;您好，您&#123;&#125;共使用&#123;&#125;二百八十兆，剩余三十兆。&quot;.format(time, item))</span><br><span class="line">        else:</span><br><span class="line">            dispatcher.utter_message(&quot;您好，您&#123;&#125;共消费二十八元。&quot;.format(time))</span><br><span class="line">        return []</span><br></pre></td></tr></table></figure>
+<p>其中的一些utter_message的地方同样可以用actions的方式定义在domain文件了，这里的demo意在更全面的覆盖框架的用法。</p>
+<h4 id="story文件准备"><a href="#story文件准备" class="headerlink" title="story文件准备"></a>story文件准备</h4><p> Story 文件中包含各种各样的对话流程，用于训练对话管理模型，由于缺少真实的对话数据，一开始往往采用其他方法收集数据（例如从传统对话管理方法的系统中获取真实数据）。这里使用通过与机器对话的方式来生成对话语料，教机器什么时候说什么话。只能感叹 数据的准备（标注）和完善是一个消耗人力物力的工作。</p>
+<p> 一个story的例子：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">## Story 12132</span><br><span class="line">* greet</span><br><span class="line">    - utter_greet</span><br><span class="line">* request_search&#123;&quot;time&quot;: &quot;上个月&quot;, &quot;item&quot;: &quot;消费&quot;&#125;</span><br><span class="line">    - action_search_consume</span><br><span class="line">    - utter_ask_morehelp</span><br><span class="line">* deny</span><br><span class="line">    - utter_goodbye</span><br><span class="line">    - export</span><br></pre></td></tr></table></figure></p>
+<p> 具体story的格式要求参考<a href="https://core.rasa.ai/stories.html" target="_blank" rel="noopener">官方文档</a> ，下面通过初始对话语料，测试强化学习（online learning），并生成对话语料。</p>
+<h4 id="online-learning"><a href="#online-learning" class="headerlink" title="online learning"></a>online learning</h4><p>运行bot.py脚本：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python bot.py online_train</span><br></pre></td></tr></table></figure></p>
+<p>同样是调用了rasa core 的 Python接口，具体代码可以在项目代码中看到。从输出中可以看到其使用的kerse 网络结构(单层的LSTM)：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">_________________________________________________________________</span><br><span class="line">Layer (type)                 Output Shape              Param #   </span><br><span class="line">=================================================================</span><br><span class="line">masking_1 (Masking)          (None, 2, 31)             0         </span><br><span class="line">_________________________________________________________________</span><br><span class="line">lstm_1 (LSTM)                (None, 32)                8192      </span><br><span class="line">_________________________________________________________________</span><br><span class="line">dense_1 (Dense)              (None, 11)                363       </span><br><span class="line">_________________________________________________________________</span><br><span class="line">activation_1 (Activation)    (None, 11)                0         </span><br><span class="line">=================================================================</span><br><span class="line">Total params: 8,555</span><br><span class="line">Trainable params: 8,555</span><br><span class="line">Non-trainable params: 0</span><br></pre></td></tr></table></figure></p>
+<p>接着就开始了对话教学之旅，以其中一部分为例：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">Bot loaded. Type a message and press enter : </span><br><span class="line">您好</span><br><span class="line">------</span><br><span class="line">Chat history:</span><br><span class="line">        bot did:        None</span><br><span class="line">        bot did:        action_listen</span><br><span class="line">        user said:      您好</span><br><span class="line">        whose intent is:       greet</span><br><span class="line"></span><br><span class="line">we currently have slots: item: None, phone_number: None, price: None, time: None</span><br><span class="line">------</span><br><span class="line">The bot wants to [utter_greet] due to the intent. Is this correct?</span><br><span class="line"></span><br><span class="line">        1.      Yes</span><br><span class="line">        2.      No, intent is right but the action is wrong</span><br><span class="line">        3.      The intent is wrong</span><br><span class="line">        0.      Export current conversations as stories and quit</span><br><span class="line">1</span><br><span class="line">你好!，我是小热，可以帮您办理流量套餐，话费查询等业务。</span><br><span class="line">------</span><br><span class="line">Chat history:</span><br><span class="line"></span><br><span class="line">        bot did:        action_listen</span><br><span class="line">        user did:       greet</span><br><span class="line">        bot did:        utter_greet</span><br><span class="line">we currently have slots: item: None, phone_number: None, price: None, time: None</span><br><span class="line">------</span><br><span class="line">The bot wants to [action_listen]. Is this correct?</span><br><span class="line">        1.      Yes.</span><br><span class="line">        2.      No, the action is wrong.</span><br><span class="line">        0.      Export current conversations as stories and quit</span><br><span class="line">1</span><br><span class="line">Next user input:</span><br><span class="line">帮我看看上个月的话费</span><br><span class="line">------</span><br><span class="line">Chat history:</span><br><span class="line"></span><br><span class="line">        bot did:        utter_greet</span><br><span class="line">        bot did:        action_listen</span><br><span class="line">        user said:      帮我看看上个月的话费</span><br><span class="line">        whose intent is:       request_search</span><br><span class="line">        with time:      上个月</span><br><span class="line">        with item:      消费</span><br><span class="line">we currently have slots: item: 消费, phone_number: None, price: None, time: 上个月</span><br><span class="line"></span><br><span class="line">------</span><br><span class="line">The bot wants to [utter_ask_time] due to the intent. Is this correct?</span><br><span class="line"></span><br><span class="line">        1.      Yes</span><br><span class="line">        2.      No, intent is right but the action is wrong</span><br><span class="line">        3.      The intent is wrong</span><br><span class="line">        0.      Export current conversations as stories and quit</span><br><span class="line">2</span><br><span class="line">------</span><br><span class="line">Chat history:</span><br><span class="line"></span><br><span class="line">        bot did:        utter_greet</span><br><span class="line"></span><br><span class="line">        bot did:        action_listen</span><br><span class="line"></span><br><span class="line">        user said:      帮我看看上个月的话费</span><br><span class="line"></span><br><span class="line">                 whose intent is:       request_search</span><br><span class="line"></span><br><span class="line">        with time:      上个月</span><br><span class="line"></span><br><span class="line">        with item:      消费</span><br><span class="line"></span><br><span class="line">we currently have slots: item: 消费, phone_number: None, price: None, time: 上个月</span><br><span class="line"></span><br><span class="line">------</span><br><span class="line">what is the next action for the bot?</span><br><span class="line"></span><br><span class="line">         0                           action_listen    0.05</span><br><span class="line">         1                          action_restart    0.00</span><br><span class="line">         2                             utter_greet    0.01</span><br><span class="line">         3                           utter_goodbye    0.02</span><br><span class="line">         4                           utter_default    0.00</span><br><span class="line">         5                            utter_thanks    0.02</span><br><span class="line">         6                      utter_ask_morehelp    0.04</span><br><span class="line">         7                          utter_ask_time    0.68</span><br><span class="line">         8                       utter_ask_package    0.04</span><br><span class="line">         9                    utter_ack_management    0.01</span><br><span class="line">        10                   action_search_consume    0.12</span><br><span class="line">10</span><br><span class="line">thanks! The bot will now [action_search_consume]</span><br><span class="line"> -----------</span><br><span class="line">好，请稍等</span><br><span class="line">您好，您上个月共消费二十八元。</span><br><span class="line">------</span><br><span class="line">...</span><br><span class="line">...</span><br></pre></td></tr></table></figure></p>
+<p>由于训练是在线进行，模型实时更新，对话结束后可以选择export将内容导出到指定文件。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">The bot wants to [action_listen]. Is this correct?</span><br><span class="line"></span><br><span class="line">        1.      Yes.</span><br><span class="line">        2.      No, the action is wrong.</span><br><span class="line">        0.      Export current conversations as stories and quit</span><br><span class="line">0</span><br><span class="line">File to export to (if file exists, this will append the stories) [stories.md]: </span><br><span class="line">INFO:rasa_core.policies.online_policy_trainer:Stories got exported to &apos;/home/zqh/mygit/rasa_chatbot/stories.md&apos;.</span><br></pre></td></tr></table></figure></p>
+<p>可以将新生成的stories.md有选择的加到data/mobile_story.md下 ，并使用新生成的mobile_story.md文件重新训练模型：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python bot.py train-dialogue</span><br></pre></td></tr></table></figure>
+<p>得到models目录下对话管理模型：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">models/</span><br><span class="line">├── dialogue</span><br><span class="line">│   ├── domain.json</span><br><span class="line">│   ├── domain.yml</span><br><span class="line">│   ├── featurizer.json</span><br><span class="line">│   ├── keras_arch.json</span><br><span class="line">│   ├── keras_policy.json</span><br><span class="line">│   ├── keras_weights.h5</span><br><span class="line">│   ├── memorized_turns.json</span><br><span class="line">│   └── policy_metadata.json</span><br><span class="line">└── ivr</span><br><span class="line">    ├── demo</span><br><span class="line">    ├── entity_extractor.dat</span><br><span class="line">    ├── entity_synonyms.json</span><br><span class="line">    ├── intent_classifier.pkl</span><br><span class="line">    ├── metadata.json</span><br><span class="line">    └── training_data.json</span><br></pre></td></tr></table></figure></p>
+<h4 id="测试对话管理"><a href="#测试对话管理" class="headerlink" title="测试对话管理"></a>测试对话管理</h4><p> 虽然对话数据有限，模型不稳定，我们仍然可以测试训练的模型：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python bot.py run</span><br></pre></td></tr></table></figure></p>
+<p> 一个测试结果如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">Bot loaded. Type a message and press enter : </span><br><span class="line">我想查一下我的话费</span><br><span class="line">您想查询哪个月的消费？</span><br><span class="line">四月的</span><br><span class="line">好，请稍等</span><br><span class="line">您好，您四月共消费二十八元。</span><br><span class="line">您还想干什么</span><br></pre></td></tr></table></figure></p>
+<p> 当然更加复杂的对话需要更多的对话语料，不过，至此，整个过程的演示基本完成。</p>
+<h4 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h4><p>使用rasa 构建对话系统比较方便，可以感觉到系统的好坏大程度的依赖于数据的质量与数量。对于项目的对话管理部分仍然有很多地方需要改进，比如一个任务完成后状态的reset；加入简单的闲聊与任务的区分，提高用户体验。</p>
+<h4 id="原创文章，转载注明出处。"><a href="#原创文章，转载注明出处。" class="headerlink" title="原创文章，转载注明出处。"></a>原创文章，转载注明出处。</h4><p>更多关注公众号：<br><img src="https://upload-images.jianshu.io/upload_images/2159902-e28220521b7ef499.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="wechat"></p>
+
+        </div>
+      </article>
+    </div>
+    <!-- Comments -->
+    <div class="container">
+      
+<section id="comment">
+  <!-- <h1 class="title">留言</h1> -->
+
+  
+</section>
+
+
+    </div>
+    <!-- Pre or Next -->
+    <div class="nav-links">
+      
+        <div class="nav-previous">
+          <a href="/2017/12/22/Rasa-Core源码之Policy训练/" rel="prev"><span class="meta-arraw meta-arraw-left"></span> 上一页</a>
+        </div>
+      
+      
+        <div class="nav-next">
+          <a href="/2017/12/01/基于rasa的对话系统搭建（上）/" rel="prev">下一页 <span class="meta-arraw meta-arraw-right"></span></a>
+        </div>
+      
+    </div>
+
+  </div>
+</div>
+
+
+  <!-- Footer -->
+  <!-- Footer-widgets -->
+<div class="footer-widgets">
+  <div class="row inside-wrapper">
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">关于本站</h1>
+        <div class="custom-widget-content">
+          
+          <p align="left">分享日常学习，传播核心价值观，传播正能量。</p>
+        </div>
+      </aside>
+    </div>
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">与我联系</h1>
+        <div class="widget-text">
+          
+            
+              <a href="https://github.com/zqhZY" class="icon icon-github" target="_blank">github</a>
+            
+              <a href="zqingheng@163.com" class="icon icon-mail" target="_blank">mail</a>
+            
+          
+        </div>
+      </aside>
+    </div>
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">站内搜索</h1>
+        <div class="widget-text">
+          <form onSubmit="return appDaily.submitSearch('')">
+            <p>
+              <input type="text" placeholder="search..." id="homeSearchInput">
+            </p>
+            <!-- <input type="submit" value="GO"> -->
+          </form>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+<!-- Footer -->
+<footer class="site-info">
+  <p>
+    <span>A Note &copy; 2018</span>
+    
+      <span class="split">|</span>
+      <span>Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> with Theme <a href="https://github.com/GallenHu/hexo-theme-Daily" target="_blank">Daily</a></span>
+    
+  </p>
+</footer>
+
+
+  <!-- After footer scripts -->
+  <!-- scripts -->
+<script src="/js/app.js"></script>
+
+
+
+
+
+</body>
+
+</html>

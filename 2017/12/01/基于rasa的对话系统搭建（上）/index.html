@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<!-- Head tag -->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+  <!--Description-->
+  
+
+  <!--Author-->
+  
+  <meta name="author" content="Zico">
+  
+
+  <!--Open Graph Title-->
+  
+      <meta property="og:title" content="基于rasa的对话系统搭建（上）"/>
+  
+  <!--Open Graph Description-->
+  
+  <!--Open Graph Site Name-->
+  <meta property="og:site_name" content="A Note"/>
+  <!--Type page-->
+  
+      <meta property="og:type" content="article" />
+  
+  <!--Page Cover-->
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <!-- Title -->
+  
+  <title>基于rasa的对话系统搭建（上） - A Note</title>
+
+
+  <link rel="shortcut icon" href="https://hexo.io/icon/favicon-96x96.png">
+
+  <!-- Custom CSS/Sass -->
+  <link rel="stylesheet" href="/css/style.css">
+
+  <!----------------------------
+  https://github.com/GallenHu/hexo-theme-Daily
+
+ _____            _   _
+|  __ \          (_) | |
+| |  | |   __ _   _  | |  _   _
+| |  | |  / _` | | | | | | | | |
+| |__| | | (_| | | | | | | |_| |
+|_____/   \__,_| |_| |_|  \__, |
+                          __/ |
+                         |___/
+
+    --------------------------->
+
+</head>
+
+
+<body>
+
+  <!-- Nav -->
+  <header class="site-header">
+  <div class="header-inside">
+    <div class="logo">
+      <a href="/" rel="home">
+        
+        <img src="https://hexo.io/logo.svg" alt="A Note" height="60">
+        
+      </a>
+    </div>
+    <!-- Navigation -->
+    <nav class="navbar">
+      <!-- Collect the nav links, forms, and other content for toggling -->
+      <div class="collapse">
+        <ul class="navbar-nav">
+          
+          
+            <li>
+              <a href="/.">
+                
+                  Home
+                
+              </a>
+            </li>
+          
+            <li>
+              <a href="/archives">
+                
+                  Archive
+                
+              </a>
+            </li>
+          
+        </ul>
+      </div>
+      <!-- /.navbar-collapse -->
+    </nav>
+    <div class="button-wrap">
+      <button class="menu-toggle">Primary Menu</button>
+    </div>
+  </div>
+</header>
+
+
+  <!-- Main Content -->
+  <div class="content-area">
+  <div class="post">
+    <!-- Post Content -->
+    <div class="container">
+      <article>
+        <!-- Title date & tags -->
+        <div class="post-header">
+          <h1 class="entry-title">
+            基于rasa的对话系统搭建（上）
+            
+          </h1>
+          <p class="posted-on">
+          2017-12-01
+          </p>
+          <div class="tags-links">
+            
+              
+                <a href="/tags/NLP/" rel="tag">
+                  NLP
+                </a>
+              
+                <a href="/tags/chatbot/" rel="tag">
+                  chatbot
+                </a>
+              
+            
+          </div>
+        </div>
+        <!-- Post Main Content -->
+        <div class="entry-content has_line_number">
+          <p>文章介绍使用rasa nlu和 rasa core 实现一个电信领域对话系统demo，实现简单的业务查询办理功能，更完善的实现需要进一步数据的收集。demo基于玩具数据集，可以达到下面的效果：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">Bot loaded. Type a message and press enter : </span><br><span class="line">YOU：你是谁</span><br><span class="line">BOT：您好!，我是机器人小热，很高兴为您服务。</span><br><span class="line">YOU：我想看一下消费情况</span><br><span class="line">BOT：您想查询哪个月的消费？</span><br><span class="line">YOU：十月份的</span><br><span class="line">BOT：好，请稍等</span><br><span class="line">BOT：您好，您十月份共消费二十八元。</span><br><span class="line">YOU：好谢谢</span><br><span class="line">BOT：您开心我就开心</span><br><span class="line">BOT：您还想干什么</span><br><span class="line">YOU：没什么了</span><br><span class="line">BOT：Bye， 下次再见</span><br></pre></td></tr></table></figure></p>
+<a id="more"></a>
+<p>用Rasa_NLU构建自己的中文NLU系统</p>
+<p>系统demo 的数据和代码路径：<br><a href="https://github.com/zqhZY/_rasa_chatbot" target="_blank" rel="noopener">https://github.com/zqhZY/_rasa_chatbot</a></p>
+<p>项目依赖安装（包括rasa nlu 和 rasa core）参考相应路径：<br><a href="https://github.com/zqhZY/_rasa_chatbot/blob/master/INSTALL.md" target="_blank" rel="noopener">https://github.com/zqhZY/_rasa_chatbot/blob/master/INSTALL.md</a></p>
+<p>关于rasa nlu的使用方法，可以参考：<br><a href="https://github.com/RasaHQ/rasa_nlu" target="_blank" rel="noopener">https://github.com/RasaHQ/rasa_nlu</a><br><a href="http://www.crownpku.com/2017/07/27/用Rasa_NLU构建自己的中文NLU系统.html" target="_blank" rel="noopener">http://www.crownpku.com/2017/07/27/用Rasa_NLU构建自己的中文NLU系统.html</a></p>
+<h4 id="确定意图和实体类别"><a href="#确定意图和实体类别" class="headerlink" title="确定意图和实体类别"></a>确定意图和实体类别</h4><p>根据业务查询和办理的场景，首先需要确定意图和实体的类别，这里系统包含如下意图和实体类型：</p>
+<h6 id="intents"><a href="#intents" class="headerlink" title="intents:"></a>intents:</h6><ul>
+<li>greet</li>
+<li>confirm # 确认</li>
+<li>goodbye </li>
+<li>thanks </li>
+<li>inform_item # 告知业务类型</li>
+<li>inform_package # 告知套餐类型</li>
+<li>inform_time # 告知时间</li>
+<li>request_management # 办理请求</li>
+<li>request_search # 查询请求</li>
+<li>deny # 否定</li>
+<li>inform_current_phone # 告知本机号码</li>
+<li>inform_other_phone # 告知其他号码</li>
+</ul>
+<h6 id="entities"><a href="#entities" class="headerlink" title="entities:"></a>entities:</h6><ul>
+<li>item # 业务类型</li>
+<li>time # 时间</li>
+<li>phone_number # 电话号码</li>
+<li>price # 价格</li>
+</ul>
+<h4 id="数据准备"><a href="#数据准备" class="headerlink" title="数据准备"></a>数据准备</h4><p> 通常项目刚开始，往往伴随着冷启动的问题。没有数据的情况下可以根据实际业务场景自行标注数据并结合规则方式先实现第一版本，线上收集真实数据（如果有机会上线的话^-^），并反过来迭代模型。 这里使用的训练数据为结合实际场景的自造数据，并转换为rasa nlu训练数据的格式，供学习使用。</p>
+<p>数据格式如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  &quot;rasa_nlu_data&quot;: &#123;</span><br><span class="line">    &quot;common_examples&quot;: [</span><br><span class="line">      &#123;</span><br><span class="line">        &quot;text&quot;: &quot;帮我查一下我的流量这里还有多少&quot;,</span><br><span class="line">        &quot;intent&quot;: &quot;request_search&quot;,</span><br><span class="line">        &quot;entities&quot;: [</span><br><span class="line">          &#123;</span><br><span class="line">            &quot;start&quot;: 7,</span><br><span class="line">            &quot;end&quot;: 9,</span><br><span class="line">            &quot;value&quot;: &quot;流量&quot;,</span><br><span class="line">            &quot;entity&quot;: &quot;item&quot;</span><br><span class="line">          &#125;</span><br><span class="line">        ]</span><br><span class="line">      &#125;,</span><br><span class="line">      ...</span><br><span class="line">      ...</span><br><span class="line">      &#123;</span><br><span class="line">        &quot;text&quot;: &quot;给我办一个三十的新流量业务&quot;,</span><br><span class="line">        &quot;intent&quot;: &quot;request_management&quot;,</span><br><span class="line">        &quot;entities&quot;: [</span><br><span class="line">          &#123;</span><br><span class="line">            &quot;start&quot;: 10,</span><br><span class="line">            &quot;end&quot;: 12,</span><br><span class="line">            &quot;value&quot;: &quot;流量&quot;,</span><br><span class="line">            &quot;entity&quot;: &quot;item&quot;</span><br><span class="line">          &#125;,</span><br><span class="line">          &#123;</span><br><span class="line">            &quot;start&quot;: 5,</span><br><span class="line">            &quot;end&quot;: 7,</span><br><span class="line">            &quot;value&quot;: &quot;三十&quot;,</span><br><span class="line">            &quot;entity&quot;: &quot;price&quot;</span><br><span class="line">          &#125;</span><br><span class="line">        ]</span><br><span class="line">      &#125;,</span><br><span class="line">      ...</span><br><span class="line">      ...</span><br><span class="line">    ],</span><br><span class="line">    &quot;regex_features&quot;: [],</span><br><span class="line">    &quot;entity_synonyms&quot;: [&#123;</span><br><span class="line">        &quot;value&quot;: &quot;消费&quot;,</span><br><span class="line">        &quot;synonyms&quot;: [&quot;话费&quot;]</span><br><span class="line">      &#125;]</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="训练自然语言理解模型"><a href="#训练自然语言理解模型" class="headerlink" title="训练自然语言理解模型"></a>训练自然语言理解模型</h4><p> 这里使用rasa nlu 的pipeline 为 MITIE+Jieba+sklearn， rasa nlu 的配置文件为：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  &quot;name&quot;: &quot;rasa_nlu&quot;,</span><br><span class="line">  &quot;project&quot;: &quot;ivr&quot;,</span><br><span class="line">  &quot;fixed_model_name&quot;: &quot;demo&quot;,</span><br><span class="line">  &quot;pipeline&quot;: [&quot;nlp_mitie&quot;,</span><br><span class="line">        &quot;tokenizer_jieba&quot;,</span><br><span class="line">        &quot;ner_mitie&quot;,</span><br><span class="line">        &quot;ner_synonyms&quot;,</span><br><span class="line">        &quot;intent_entity_featurizer_regex&quot;,</span><br><span class="line">        &quot;intent_featurizer_mitie&quot;,</span><br><span class="line">        &quot;intent_classifier_sklearn&quot;],</span><br><span class="line">  &quot;language&quot;: &quot;zh&quot;,</span><br><span class="line">  &quot;mitie_file&quot;: &quot;data/total_word_feature_extractor.dat&quot;,</span><br><span class="line">  &quot;path&quot; : &quot;models&quot;,</span><br><span class="line">  &quot;data&quot; : &quot;data/mobile_nlu_data.json&quot;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h5 id="MITIE模型训练"><a href="#MITIE模型训练" class="headerlink" title="MITIE模型训练"></a>MITIE模型训练</h5><p>由于使用了mitie 所以需要事先准备相应的词特征向量（total_word_feature_extractor.dat），类似训练word2vec，<br>方法如下：</p>
+<p>把所有分好词的语料文件放在同一个文件路径下。接下来我们要训练MITIE模型。</p>
+<p>首先将MITIE clone下来：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ git clone https://github.com/mit-nlp/MITIE.git</span><br></pre></td></tr></table></figure></p>
+<p>我们要使用的只是MITIE其中wordrep这一个工具。我们先build它。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ cd MITIE/tools/wordrep</span><br><span class="line">$ mkdir build</span><br><span class="line">$ cd build</span><br><span class="line">$ cmake ..</span><br><span class="line">$ cmake --build . --config Release</span><br></pre></td></tr></table></figure></p>
+<p>然后训练模型，得到total_word_feature_extractor.dat。注意这一步训练会耗费几十GB的内存，大概需要两到三天的时间。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ ./wordrep -e /path/to/your/folder_of_cutted_text_files</span><br></pre></td></tr></table></figure></p>
+<p> 项目链接里包含了用真实电信业务数据训练的total_word_feature_extractor.dat，也可以使用wiki百科训练的相应模型。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">链接：http://pan.baidu.com/s/1micEF0G 密码：opli</span><br></pre></td></tr></table></figure></p>
+<h5 id="训练rasa-nlu-模型"><a href="#训练rasa-nlu-模型" class="headerlink" title="训练rasa nlu 模型"></a>训练rasa nlu 模型</h5><p>使用rasa nlu 的终端接口训练模型：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python -m rasa_nlu.train -c mobile_nlu_model_config.json</span><br></pre></td></tr></table></figure></p>
+<p> 也可以使用bot.py 里的Python 接口：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">def train_nlu():</span><br><span class="line">    from rasa_nlu.converters import load_data</span><br><span class="line">    from rasa_nlu.config import RasaNLUConfig</span><br><span class="line">    from rasa_nlu.model import Trainer</span><br><span class="line"></span><br><span class="line">    training_data = load_data(&quot;data/mobile_nlu_data.json&quot;)</span><br><span class="line">    trainer = Trainer(RasaNLUConfig(&quot;mobile_nlu_model_config.json&quot;))</span><br><span class="line">    trainer.train(training_data)</span><br><span class="line">    model_directory = trainer.persist(&quot;models/&quot;, project_name=&quot;ivr&quot;, fixed_model_name=&quot;demo&quot;)</span><br><span class="line"></span><br><span class="line">    return model_directory</span><br></pre></td></tr></table></figure></p>
+<p>运行相应命令：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python bot.py train-nlu</span><br></pre></td></tr></table></figure></p>
+<p>两种方式都会在项目根目录models下生成模型：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">models/</span><br><span class="line">└── ivr</span><br><span class="line">    ├── demo</span><br><span class="line">       ├── entity_extractor.dat</span><br><span class="line">       ├── entity_synonyms.json</span><br><span class="line">       ├── intent_classifier.pkl</span><br><span class="line">       ├── metadata.json</span><br><span class="line">       └── training_data.json</span><br></pre></td></tr></table></figure></p>
+<h5 id="rasa-nlu-测试"><a href="#rasa-nlu-测试" class="headerlink" title="rasa nlu 测试"></a>rasa nlu 测试</h5><p> 训练好模型后可以使用http接口进行测试，启动项目的httpserver，服务会load模型，并接受http请求，对新文本进行预测：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ python httpserver.py </span><br><span class="line">2018-01-12 11:48:23+0800 [-] Log opened.</span><br><span class="line">2018-01-12 11:48:23+0800 [-] Site starting on 1235</span><br><span class="line">2018-01-12 11:48:23+0800 [-] Starting factory &lt;twisted.web.server.Site object at 0x7f090a9d49b0&gt;</span><br></pre></td></tr></table></figure></p>
+<p> 向服务发送http请求测试结果:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ curl -XPOST 127.0.0.1:1235/parse -d &apos;&#123;&quot;text&quot;:&quot;给我查一下我上个月的流量&quot;&#125;&apos;</span><br><span class="line">&#123;&quot;text&quot;: &quot;给我查一下我上个月的流量&quot;, &quot;intent&quot;: &quot;request_search&quot;, &quot;entities&quot;: &#123;&quot;time&quot;: &quot;上个月&quot;, &quot;item&quot;: &quot;流量&quot;&#125;&#125;</span><br></pre></td></tr></table></figure></p>
+<p>同时httpserver 后台打印完整log，包括每个intent的预测confidence。</p>
+<h4 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h4><p>篇幅原因，这里只介绍训练rasa nlu的流程，更多rasa nlu的用法可以到官方文档了解。下篇文章介绍利用这里训练的nlu模型，使用rasa core 的online learning （或强化学习）方式进行对话管理模型的训练和测试。</p>
+<p><a href="">原创文章，转载注明出处</a>。<br>更多关注公众号：<br><img src="https://upload-images.jianshu.io/upload_images/2159902-e28220521b7ef499.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="wechat"></p>
+
+        </div>
+      </article>
+    </div>
+    <!-- Comments -->
+    <div class="container">
+      
+<section id="comment">
+  <!-- <h1 class="title">留言</h1> -->
+
+  
+</section>
+
+
+    </div>
+    <!-- Pre or Next -->
+    <div class="nav-links">
+      
+        <div class="nav-previous">
+          <a href="/2017/12/03/基于rasa的对话系统搭建（下）/" rel="prev"><span class="meta-arraw meta-arraw-left"></span> 上一页</a>
+        </div>
+      
+      
+        <div class="nav-next">
+          <a href="/2017/10/07/Spacy-使用中文WordVector/" rel="prev">下一页 <span class="meta-arraw meta-arraw-right"></span></a>
+        </div>
+      
+    </div>
+
+  </div>
+</div>
+
+
+  <!-- Footer -->
+  <!-- Footer-widgets -->
+<div class="footer-widgets">
+  <div class="row inside-wrapper">
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">关于本站</h1>
+        <div class="custom-widget-content">
+          
+          <p align="left">分享日常学习，传播核心价值观，传播正能量。</p>
+        </div>
+      </aside>
+    </div>
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">与我联系</h1>
+        <div class="widget-text">
+          
+            
+              <a href="https://github.com/zqhZY" class="icon icon-github" target="_blank">github</a>
+            
+              <a href="zqingheng@163.com" class="icon icon-mail" target="_blank">mail</a>
+            
+          
+        </div>
+      </aside>
+    </div>
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">站内搜索</h1>
+        <div class="widget-text">
+          <form onSubmit="return appDaily.submitSearch('')">
+            <p>
+              <input type="text" placeholder="search..." id="homeSearchInput">
+            </p>
+            <!-- <input type="submit" value="GO"> -->
+          </form>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+<!-- Footer -->
+<footer class="site-info">
+  <p>
+    <span>A Note &copy; 2018</span>
+    
+      <span class="split">|</span>
+      <span>Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> with Theme <a href="https://github.com/GallenHu/hexo-theme-Daily" target="_blank">Daily</a></span>
+    
+  </p>
+</footer>
+
+
+  <!-- After footer scripts -->
+  <!-- scripts -->
+<script src="/js/app.js"></script>
+
+
+
+
+
+</body>
+
+</html>

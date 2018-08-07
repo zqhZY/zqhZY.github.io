@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<!-- Head tag -->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+  <!--Description-->
+  
+
+  <!--Author-->
+  
+  <meta name="author" content="Zico">
+  
+
+  <!--Open Graph Title-->
+  
+      <meta property="og:title" content="Docker Swarm搭建Gitlab"/>
+  
+  <!--Open Graph Description-->
+  
+  <!--Open Graph Site Name-->
+  <meta property="og:site_name" content="A Note"/>
+  <!--Type page-->
+  
+      <meta property="og:type" content="article" />
+  
+  <!--Page Cover-->
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <!-- Title -->
+  
+  <title>Docker Swarm搭建Gitlab - A Note</title>
+
+
+  <link rel="shortcut icon" href="https://hexo.io/icon/favicon-96x96.png">
+
+  <!-- Custom CSS/Sass -->
+  <link rel="stylesheet" href="/css/style.css">
+
+  <!----------------------------
+  https://github.com/GallenHu/hexo-theme-Daily
+
+ _____            _   _
+|  __ \          (_) | |
+| |  | |   __ _   _  | |  _   _
+| |  | |  / _` | | | | | | | | |
+| |__| | | (_| | | | | | | |_| |
+|_____/   \__,_| |_| |_|  \__, |
+                          __/ |
+                         |___/
+
+    --------------------------->
+
+</head>
+
+
+<body>
+
+  <!-- Nav -->
+  <header class="site-header">
+  <div class="header-inside">
+    <div class="logo">
+      <a href="/" rel="home">
+        
+        <img src="https://hexo.io/logo.svg" alt="A Note" height="60">
+        
+      </a>
+    </div>
+    <!-- Navigation -->
+    <nav class="navbar">
+      <!-- Collect the nav links, forms, and other content for toggling -->
+      <div class="collapse">
+        <ul class="navbar-nav">
+          
+          
+            <li>
+              <a href="/.">
+                
+                  Home
+                
+              </a>
+            </li>
+          
+            <li>
+              <a href="/archives">
+                
+                  Archive
+                
+              </a>
+            </li>
+          
+        </ul>
+      </div>
+      <!-- /.navbar-collapse -->
+    </nav>
+    <div class="button-wrap">
+      <button class="menu-toggle">Primary Menu</button>
+    </div>
+  </div>
+</header>
+
+
+  <!-- Main Content -->
+  <div class="content-area">
+  <div class="post">
+    <!-- Post Content -->
+    <div class="container">
+      <article>
+        <!-- Title date & tags -->
+        <div class="post-header">
+          <h1 class="entry-title">
+            Docker Swarm搭建Gitlab
+            
+          </h1>
+          <p class="posted-on">
+          2016-12-01
+          </p>
+          <div class="tags-links">
+            
+              
+                <a href="/tags/docker/" rel="tag">
+                  docker
+                </a>
+              
+                <a href="/tags/gitlab/" rel="tag">
+                  gitlab
+                </a>
+              
+            
+          </div>
+        </div>
+        <!-- Post Main Content -->
+        <div class="entry-content has_line_number">
+          <p>在云端搭建自己的代码仓库，本地Push代码，持续集成后自动发布。新版的Gitlab很好地支持这个需求，虽然只是自己使用，但目标还是利用三台云主机搭建一个高可用模式的Gitlab服务。</p>
+<a id="more"></a>
+<p><img src="http://upload-images.jianshu.io/upload_images/2159902-ab51a2afa401e433.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="active-active-gitlab"></p>
+<p>本文首先实现用Swarm管理集群，部署单主机模式的Gitlab。云主机是收集学生优惠卷1元买来的，单核，1G内存。一开始运行起gitlab，整个系统卡顿了，显然的资源不足。到官网上查看gitlab安装需求才知道现在的资源状况只能实现最不值得推荐的配置：</p>
+<blockquote>
+<p>1 core supports up to 100 users but the application can be a bit slower due to having all workers and background jobs running on the same core<br>1GB RAM + 3GB of swap is the absolute minimum but we strongly advise against this amount of memory. See the unicorn worker section below for more advice.</p>
+</blockquote>
+<p>查看主机交换区大小发现默认交换区大小为0，因此需要手动增加交换区大小。</p>
+<h3 id="增加交换区"><a href="#增加交换区" class="headerlink" title="增加交换区"></a>增加交换区</h3><p>生成4G大小的文件在/home目录下文件为swapflie：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ sudo dd <span class="keyword">if</span>=/dev/zero of=/home/swapflie bs=1M count=4096</span><br><span class="line">4096+0 records <span class="keyword">in</span></span><br><span class="line">4096+0 records out</span><br><span class="line">4294967296 bytes (4.3 GB) copied, 36.7799 s, 117 MB/s</span><br></pre></td></tr></table></figure></p>
+<p>把这个文件转换成swap分区<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ sudo /sbin/mkswap /home/swapflie</span><br></pre></td></tr></table></figure></p>
+<p>使分区生效<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ sudo /sbin/swapon /home/swapfile</span><br></pre></td></tr></table></figure></p>
+<p>查看分区是否分配成功,(省略了其他指标参数)<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ free -h</span><br><span class="line">             total       used       free     </span><br><span class="line">Swap:         4.0G         0B       4.0G</span><br></pre></td></tr></table></figure></p>
+<h3 id="搭建Gitlab"><a href="#搭建Gitlab" class="headerlink" title="搭建Gitlab"></a>搭建Gitlab</h3><h4 id="准备Swarm集群"><a href="#准备Swarm集群" class="headerlink" title="准备Swarm集群"></a>准备Swarm集群</h4><p>在资源有限的情况下管理容器集群，Swarm是一个比较好的选择，相比于之前生产环境用的Kubernetes，Swarm操作简单，资源开销小，适合内部环境使用。</p>
+<p>如果已经安装了最新版本的docker（目前是1.12.5），docker engine 已经集成了swarm。<br>可以用下面的命令安装最新发布版本的docker，安装完需要将当前用户加入docker用户组，并重新登录生效。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -fsSL https://get.docker.com/ | sh</span><br></pre></td></tr></table></figure></p>
+<p>阅读官方文档，理想情况下用Swarm配合Docker Compose以及Docker Machine可以很方便地构建docker集群。但Docker Machine创建docker环境相当于在云主机上创建另外的虚拟机（如virtual box，默认单核，1G内存）,所以只能手动在云主机上安装相同docker环境，而不使用 Docker Machine。<br>另外<a href="https://docs.docker.com/compose/swarm/" target="_blank" rel="noopener">Docker Compose配合Swarm</a>，文档中有比较详细的使用方法，一开始根据这个文档部署环境，结果遇到很多坑，查错的过程中才知道目前这种模式仍在试验阶段，<a href="https://docs.docker.com/compose/bundles/" target="_blank" rel="noopener">需要安装试验版本（docker 1.13）或者启动试验模式</a>。使用Docker Compose + Swarm模式的方式需要其他方法，一种方式是将docker-compose.yml文件转换成swarm服务的启动方式，有个<a href="https://github.com/ddrozdov/docker-compose-swarm-mode" target="_blank" rel="noopener">临时的实现方法</a>，可以试用。</p>
+<p>这里没有使用上面的方法，而是全部用命令行方式构建Swarm集群：</p>
+<h4 id="初始化集群"><a href="#初始化集群" class="headerlink" title="初始化集群"></a>初始化集群</h4><p>Swarm的思想主要是将多台主机抽象成一台manager服务器，通过Swarm来启动docker容器（service）,像直接运行容器一样，不同的是容器会被负载均衡到不同主机。而对于容器的管理则可只在manager机器上进行。Swarm的架构如图：<br><img src="http://upload-images.jianshu.io/upload_images/2159902-26d11806625f0232.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="swarm-arch"></p>
+<p>这里首先实现两台主机的service部署，managers上运行Swarm集群可视化工具，slave主机上运行gitlab.</p>
+<h4 id="登录manager主机-初始化Swarm-manage"><a href="#登录manager主机-初始化Swarm-manage" class="headerlink" title="登录manager主机,初始化Swarm manage"></a>登录manager主机,初始化Swarm manage</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker swarm init --advertise-addr 192.168.10.11</span><br></pre></td></tr></table></figure>
+<p>命令返回slave节点加入集群的命令，如：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">To add a worker to this swarm, run the following <span class="built_in">command</span>:</span><br><span class="line"> docker swarm join \</span><br><span class="line"> --token SWMTKN-1-5bgo3ocj3mqezig2v3j9mge4aknehgbcueovivzu6mz9supqzg-8igbqrbqhsh0z9l62qrrs0zi0 \</span><br><span class="line"> 192.168.10.11:2377</span><br></pre></td></tr></table></figure></p>
+<p>该信息在集群创建成功后也可以在manage主机通过下面命令获得。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker swarm join-token worker</span><br></pre></td></tr></table></figure></p>
+<h4 id="登录到slave主机，加入集群"><a href="#登录到slave主机，加入集群" class="headerlink" title="登录到slave主机，加入集群"></a>登录到slave主机，加入集群</h4><p>通过manage返回的token信息，加入集群<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"> docker swarm join \</span><br><span class="line"> --token SWMTKN-1-5bgo3ocj3mqezig2v3j9mge4aknehgbcueovivzu6mz9supqzg-8igbqrbqhsh0z9l62qrrs0zi0 \</span><br><span class="line">192.168.10.11:2377</span><br></pre></td></tr></table></figure></p>
+<p>注意我这里的两个主机都是云主机，而且两台主机不在同一个局域网网段，因此需要将manage的内网地址192.168.10.11换成对应的公网IP，才能成功注册。如果两台主机在同一局域网，则可直接添加到集群。</p>
+<p>给slave主机添加标签，使manage可以通过标签限定具体slave node，后面可以看到：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker node  update --add-lable type=gitlab-node1</span><br></pre></td></tr></table></figure></p>
+<p>这里给slave机器添加type=gitlab-node1的标签。</p>
+<h4 id="启动Swarm可视化服务"><a href="#启动Swarm可视化服务" class="headerlink" title="启动Swarm可视化服务"></a>启动Swarm可视化服务</h4><p>返回到manage主机，通过docker node ls命令查看集群节点状态，一切正常后，启动Swarm可视化服务。官方并没有提供可视化服务，在这里(<a href="https://github.com/ManoMarks/docker-swarm-visualizer" target="_blank" rel="noopener">docker-swarm-visualizer</a>)有一个很好的开源实现,可以直接使用该镜像构建服务。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ docker service create   --name=swarm_visual   --publish=5001:8080/tcp   --constraint=node.role==manager   --mount=<span class="built_in">type</span>=<span class="built_in">bind</span>,src=/var/run/docker.sock,dst=/var/run/docker.sock   manomarks/visualizer</span><br></pre></td></tr></table></figure></p>
+<p>服务启动通过 –constraint=node.role==manager 限定该服务在manage主机运行。并通过将web端口映射到云主机的5001端口。可以通过(公网IP:5001)的方式访问。</p>
+<h4 id="创建gitlab数据vloumes"><a href="#创建gitlab数据vloumes" class="headerlink" title="创建gitlab数据vloumes"></a>创建gitlab数据vloumes</h4><p>为了方便容器数据的共享，以及后面数据的迁移，选择创建volumes来在本地持久化gitlab容器数据，而不是映射到本地路径。<br>登录到slave主机，为gitlab创建volumes，volumes的使用可以从后面看到：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ docker volume create --name gitlab_config</span><br><span class="line">$ docker volume create --name gitlab_logs</span><br><span class="line">$ docker volume create --name gitlab_data</span><br></pre></td></tr></table></figure></p>
+<p>这里创建了三个volumes,分别存储gitlab的配置文件、日志和用户数据。</p>
+<h4 id="启动Gitlab服务"><a href="#启动Gitlab服务" class="headerlink" title="启动Gitlab服务"></a>启动Gitlab服务</h4><p>在manage主机上可以直接启动gitlab服务，并限定服务在slave主机运行。系统自动会到gitlub上pull相应镜像，并在本地运行。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">sudo docker service create \</span><br><span class="line">    --name swarm_gitlab\</span><br><span class="line">    --publish 5002:443 --publish 5003:80 --publish 5004:22 \</span><br><span class="line">    --replicas 1 \</span><br><span class="line">    --mount <span class="built_in">type</span>=volume,<span class="built_in">source</span>=gitlab_config,destination=/etc/gitlab \</span><br><span class="line">    --mount <span class="built_in">type</span>=volume,<span class="built_in">source</span>=gitlab_logs,destination=/var/<span class="built_in">log</span>/gitlab \</span><br><span class="line">    --mount <span class="built_in">type</span>=volume,<span class="built_in">source</span>=gitlab_data,destination=/var/opt/gitlab \</span><br><span class="line">    --constraint <span class="string">'node.labels.type == gitlab-node1'</span> \</span><br><span class="line">    gitlab/gitlab-ce:latest</span><br></pre></td></tr></table></figure></p>
+<p>命令中指定服务名为swarm_gitlab，以及http服务（443，80）和ssh服务（22）端口，分别映射到宿主机；指定备份服务数为1，映射本地路径到容器相应路径，这里使用volums的方式；限定在标签type= gitlab-node1的主机上启动服务。</p>
+<h4 id="测试"><a href="#测试" class="headerlink" title="测试"></a>测试</h4><p>登录到manage主机，查看节点查看服务状态：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">$ docker service ls</span><br><span class="line">ID            NAME          REPLICAS  IMAGE                    COMMAND</span><br><span class="line">79c0rvct38j1  swarm_visual  1/1       manomarks/visualizer</span><br><span class="line">dbygi9gx1318  swarm_gitlab  1/1       gitlab/gitlab-ce:latest</span><br><span class="line"></span><br><span class="line">$ docker service ps swarm_gitlab</span><br><span class="line">ID                         NAME            IMAGE                    NODE               DESIRED STATE  CURRENT STATE        ERROR</span><br><span class="line">3haqups6rzf8ugobqzyescl21  swarm_gitlab.1  gitlab/gitlab-ce:latest  VM**  Running        Running 9 hours ago</span><br></pre></td></tr></table></figure></p>
+<p>访问manage主机的5001端口，可以看到Swarm集群的状态：</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/2159902-248fbafe7ec460fe.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="docker-swarm-visulizer"></p>
+<p>通过docker node的相关命令同样也可以查看集群节点信息。</p>
+<p>访问slave主机的5003端口，看到熟悉的Gitlab登录界面，创建初试用户和密码，创建用户组，和测试Project：<br><img src="http://upload-images.jianshu.io/upload_images/2159902-c3c67142d8093eaa.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="gitlab"></p>
+<h3 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h3><p>本文主要实现在有限云主机资源下搭建gitlab服务，这里并没有涉及gitlab的具体配置。这里只是简单构建一个可用的服务，后面再去看gitlab的管理方法，以及服务的稳定性和数据的备份与恢复。此外，第一次使用Swarm，由于资源限制，并没有采用最佳的方式来部署服务。</p>
+<p>更多关注公众号：<br><img src="https://upload-images.jianshu.io/upload_images/2159902-e28220521b7ef499.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="wechat"></p>
+
+        </div>
+      </article>
+    </div>
+    <!-- Comments -->
+    <div class="container">
+      
+<section id="comment">
+  <!-- <h1 class="title">留言</h1> -->
+
+  
+</section>
+
+
+    </div>
+    <!-- Pre or Next -->
+    <div class="nav-links">
+      
+        <div class="nav-previous">
+          <a href="/2017/03/01/Kaldi命令词识别/" rel="prev"><span class="meta-arraw meta-arraw-left"></span> 上一页</a>
+        </div>
+      
+      
+        <div class="nav-next">
+          <a href="/2016/11/20/Docker构建Flink集群/" rel="prev">下一页 <span class="meta-arraw meta-arraw-right"></span></a>
+        </div>
+      
+    </div>
+
+  </div>
+</div>
+
+
+  <!-- Footer -->
+  <!-- Footer-widgets -->
+<div class="footer-widgets">
+  <div class="row inside-wrapper">
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">关于本站</h1>
+        <div class="custom-widget-content">
+          
+          <p align="left">分享日常学习，传播核心价值观，传播正能量。</p>
+        </div>
+      </aside>
+    </div>
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">与我联系</h1>
+        <div class="widget-text">
+          
+            
+              <a href="https://github.com/zqhZY" class="icon icon-github" target="_blank">github</a>
+            
+              <a href="zqingheng@163.com" class="icon icon-mail" target="_blank">mail</a>
+            
+          
+        </div>
+      </aside>
+    </div>
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">站内搜索</h1>
+        <div class="widget-text">
+          <form onSubmit="return appDaily.submitSearch('')">
+            <p>
+              <input type="text" placeholder="search..." id="homeSearchInput">
+            </p>
+            <!-- <input type="submit" value="GO"> -->
+          </form>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+<!-- Footer -->
+<footer class="site-info">
+  <p>
+    <span>A Note &copy; 2018</span>
+    
+      <span class="split">|</span>
+      <span>Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> with Theme <a href="https://github.com/GallenHu/hexo-theme-Daily" target="_blank">Daily</a></span>
+    
+  </p>
+</footer>
+
+
+  <!-- After footer scripts -->
+  <!-- scripts -->
+<script src="/js/app.js"></script>
+
+
+
+
+
+</body>
+
+</html>

@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<!-- Head tag -->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+  <!--Description-->
+  
+
+  <!--Author-->
+  
+  <meta name="author" content="Zico">
+  
+
+  <!--Open Graph Title-->
+  
+      <meta property="og:title" content="Word2vector句子相似度计算"/>
+  
+  <!--Open Graph Description-->
+  
+  <!--Open Graph Site Name-->
+  <meta property="og:site_name" content="A Note"/>
+  <!--Type page-->
+  
+      <meta property="og:type" content="article" />
+  
+  <!--Page Cover-->
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <!-- Title -->
+  
+  <title>Word2vector句子相似度计算 - A Note</title>
+
+
+  <link rel="shortcut icon" href="https://hexo.io/icon/favicon-96x96.png">
+
+  <!-- Custom CSS/Sass -->
+  <link rel="stylesheet" href="/css/style.css">
+
+  <!----------------------------
+  https://github.com/GallenHu/hexo-theme-Daily
+
+ _____            _   _
+|  __ \          (_) | |
+| |  | |   __ _   _  | |  _   _
+| |  | |  / _` | | | | | | | | |
+| |__| | | (_| | | | | | | |_| |
+|_____/   \__,_| |_| |_|  \__, |
+                          __/ |
+                         |___/
+
+    --------------------------->
+
+</head>
+
+
+<body>
+
+  <!-- Nav -->
+  <header class="site-header">
+  <div class="header-inside">
+    <div class="logo">
+      <a href="/" rel="home">
+        
+        <img src="https://hexo.io/logo.svg" alt="A Note" height="60">
+        
+      </a>
+    </div>
+    <!-- Navigation -->
+    <nav class="navbar">
+      <!-- Collect the nav links, forms, and other content for toggling -->
+      <div class="collapse">
+        <ul class="navbar-nav">
+          
+          
+            <li>
+              <a href="/.">
+                
+                  Home
+                
+              </a>
+            </li>
+          
+            <li>
+              <a href="/archives">
+                
+                  Archive
+                
+              </a>
+            </li>
+          
+        </ul>
+      </div>
+      <!-- /.navbar-collapse -->
+    </nav>
+    <div class="button-wrap">
+      <button class="menu-toggle">Primary Menu</button>
+    </div>
+  </div>
+</header>
+
+
+  <!-- Main Content -->
+  <div class="content-area">
+  <div class="post">
+    <!-- Post Content -->
+    <div class="container">
+      <article>
+        <!-- Title date & tags -->
+        <div class="post-header">
+          <h1 class="entry-title">
+            Word2vector句子相似度计算
+            
+          </h1>
+          <p class="posted-on">
+          2017-05-20
+          </p>
+          <div class="tags-links">
+            
+              
+                <a href="/tags/NLP/" rel="tag">
+                  NLP
+                </a>
+              
+                <a href="/tags/句子相似度/" rel="tag">
+                  句子相似度
+                </a>
+              
+            
+          </div>
+        </div>
+        <!-- Post Main Content -->
+        <div class="entry-content has_line_number">
+          <p><img src="http://upload-images.jianshu.io/upload_images/2159902-82df77dc21df942f.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="word2vector"><br> 最近有任务要对句子和文档的相似读进行评估计算，学习了词向量的相关知识，并做了简单的测试。在测试过程中发现网上完整且简单的词向量分析句子相似度的文章比较少，所以打算整理一篇简单的文章，这里忽略词向量的理论知识，直接记录主要的实现过程。<br><a id="more"></a></p>
+<h5 id="step1-准备语料"><a href="#step1-准备语料" class="headerlink" title="step1 准备语料"></a>step1 准备语料</h5><p>这里使用百度开放的<a href="http://idl.baidu.com/WebQA.html" target="_blank" rel="noopener">WebQA数据集</a>，该数据集包括百度知道的很多问题、答案和相关证据（evidences），原始数据集为json格式，同时包括其他信息，这里仅使用其问题与证据作为训练词向量的语料库。处理后的语料库可以在文章末尾的源码链接下载。</p>
+<p> 在对数据进行提取后，训练之前需要对文本进行预处理：</p>
+<ul>
+<li>读取json数据集，提取问题及其证据，分词并按行保存到文件中，方便训练词向量。</li>
+<li>去停用词，这里由于要保留上下文信息，停用词大都包括标点符号及其他特殊字符。</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># -*- coding:utf-8 -*-</span></span><br><span class="line"><span class="keyword">import</span> json</span><br><span class="line"><span class="keyword">import</span> os</span><br><span class="line"><span class="keyword">import</span> shutil</span><br><span class="line"><span class="keyword">import</span> jieba</span><br><span class="line"><span class="keyword">import</span> sys</span><br><span class="line">reload(sys)</span><br><span class="line">sys.setdefaultencoding(<span class="string">"utf-8"</span>)</span><br><span class="line"></span><br><span class="line">data_set = <span class="string">"./dataset/me_train.json"</span></span><br><span class="line">target = <span class="string">"./dataset/train_questions_with_evidence.txt"</span></span><br><span class="line">stopwords_dict = <span class="string">"./dataset/stop_words_ch.txt"</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">rm_stopwords</span><span class="params">(file_path, word_dict)</span>:</span></span><br><span class="line">    <span class="string">"""</span></span><br><span class="line"><span class="string">        rm stop word for &#123;file_path&#125;, stop words save in &#123;word_dict&#125; file.</span></span><br><span class="line"><span class="string">        file_path: file path of file generated by function splitwords.</span></span><br><span class="line"><span class="string">                    each lines of file is format as &lt;file_unique_id&gt; &lt;file_words&gt;.</span></span><br><span class="line"><span class="string">        word_dict: file containing stop words, and every stop words in one line.</span></span><br><span class="line"><span class="string">        output: file_path which have been removed stop words and overwrite original file.</span></span><br><span class="line"><span class="string">    """</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># read stop word dict and save in stop_dict</span></span><br><span class="line">    stop_dict = &#123;&#125;</span><br><span class="line">    <span class="keyword">with</span> open(word_dict) <span class="keyword">as</span> d:</span><br><span class="line">        <span class="keyword">for</span> word <span class="keyword">in</span> d:</span><br><span class="line">            stop_dict[word.strip(<span class="string">"\n"</span>)] = <span class="number">1</span></span><br><span class="line">    <span class="comment"># remove tmp file if exists</span></span><br><span class="line">    <span class="keyword">if</span> os.path.exists(file_path + <span class="string">".tmp"</span>):</span><br><span class="line">        os.remove(file_path + <span class="string">".tmp"</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">print</span> <span class="string">"now remove stop words in %s."</span> % file_path</span><br><span class="line">    <span class="comment"># read source file and rm stop word for each line.</span></span><br><span class="line">    <span class="keyword">with</span> open(file_path) <span class="keyword">as</span> f1, open(file_path + <span class="string">".tmp"</span>, <span class="string">"w"</span>) <span class="keyword">as</span> f2:</span><br><span class="line">        <span class="keyword">for</span> line <span class="keyword">in</span> f1:</span><br><span class="line">            tmp_list = []  <span class="comment"># save words not in stop dict</span></span><br><span class="line">            words = line.split()</span><br><span class="line">            <span class="keyword">for</span> word <span class="keyword">in</span> words:</span><br><span class="line">                <span class="keyword">if</span> word <span class="keyword">not</span> <span class="keyword">in</span> stop_dict:</span><br><span class="line">                    tmp_list.append(word)</span><br><span class="line">            words_without_stop = <span class="string">" "</span>.join(tmp_list)</span><br><span class="line">            to_write = words_without_stop + <span class="string">"\n"</span></span><br><span class="line">            f2.write(to_write.encode(<span class="string">"utf8"</span>))</span><br><span class="line"></span><br><span class="line">    <span class="comment"># overwrite origin file with file been removed stop words</span></span><br><span class="line">    shutil.move(file_path + <span class="string">".tmp"</span>, file_path)</span><br><span class="line">    <span class="keyword">print</span> <span class="string">"stop words in %s has been removed."</span> % file_path</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">with</span> open(data_set, <span class="string">"r"</span>) <span class="keyword">as</span> f, open(target, <span class="string">"w"</span>) <span class="keyword">as</span> f2:</span><br><span class="line">    data = json.load(f)</span><br><span class="line">    count = <span class="number">0</span></span><br><span class="line">    <span class="keyword">for</span> key, value <span class="keyword">in</span> data.iteritems():</span><br><span class="line">        question = data[key][<span class="string">"question"</span>]</span><br><span class="line">        words = jieba.cut(question, cut_all=<span class="keyword">False</span>)</span><br><span class="line">        f2.write(<span class="string">" "</span>.join(words) + <span class="string">"\n"</span>)</span><br><span class="line">        <span class="keyword">for</span> k, v <span class="keyword">in</span> data[key][<span class="string">'evidences'</span>].iteritems():</span><br><span class="line">            words2 = jieba.cut(data[key][<span class="string">'evidences'</span>][k][<span class="string">'evidence'</span>], cut_all=<span class="keyword">False</span>)</span><br><span class="line">            f2.write(<span class="string">" "</span>.join(words2) + <span class="string">"\n"</span>)</span><br><span class="line">            count += <span class="number">1</span></span><br><span class="line">        count += <span class="number">1</span></span><br><span class="line">    <span class="keyword">print</span> <span class="string">"all question num is %s"</span> % count</span><br><span class="line"></span><br><span class="line">rm_stopwords(target, stopwords_dict)</span><br></pre></td></tr></table></figure>
+<p>代码中首先读取语料库文件dataset/me_train.json，提取目标文本，分词后保存到dataset/train_questions_with_evidence.txt，最后对该文件中的文本去停用词。</p>
+<h5 id="step2-训练词向量"><a href="#step2-训练词向量" class="headerlink" title="step2 训练词向量"></a>step2 训练词向量</h5><p> 在理解词向量的训练原理后，实现部分利用开源工具，过程相对简单。该部分使用gensim对上面预处理后的文本进行词向量的训练：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># -*- coding:utf-8 -*-</span></span><br><span class="line"><span class="keyword">import</span> logging</span><br><span class="line"><span class="keyword">from</span> gensim.models.word2vec <span class="keyword">import</span> LineSentence, Word2Vec</span><br><span class="line"><span class="keyword">import</span> sys</span><br><span class="line">reload(sys)</span><br><span class="line">sys.setdefaultencoding(<span class="string">"utf-8"</span>)</span><br><span class="line"></span><br><span class="line">logging.basicConfig(format=<span class="string">'%(asctime)s : %(levelname)s : %(message)s'</span>, level=logging.INFO)</span><br><span class="line">sentences= LineSentence(<span class="string">"./dataset/train_questions_with_evidence.txt"</span>)</span><br><span class="line">model = Word2Vec(sentences, min_count=<span class="number">1</span>, iter=<span class="number">1000</span>)</span><br><span class="line">model.save(<span class="string">"./model/w2v.mod"</span>)</span><br></pre></td></tr></table></figure>
+<p>这里使用默认的训练参数，几个代表性的参数：</p>
+<ul>
+<li>词向量的维度size=100</li>
+<li>上下文窗口window=5</li>
+<li>负采样数negative=5</li>
+</ul>
+<p>代码中首先用LineSentence将语料文本中的内容按行读入为词序列作为训练数据。接着对语料库进行1000次迭代，并取词的min_count为1，即所有词汇都参与训练。最后保存训练好的模型。这里1000次迭代大概用了10h左右，果断利用晚上的宝贵时间。</p>
+<h5 id="句子相似度baseline"><a href="#句子相似度baseline" class="headerlink" title="句子相似度baseline"></a>句子相似度baseline</h5><p>目标是进行句子相似度的计算，得到词向量后最简单的方式是把目标句子的各个词的词向量进行相加取平均，把任意长的句子表示成固定维度的向量进行相似度比较。这么做虽然忽略了句子中的词顺序，但可以作为baseline简单衡量句子相似度计算以及词向量训练的效果。</p>
+<p>这里进行简单测试，从所有问题集中随机抽取500个问题作为目标句子，然后从终端输入相关问题，从500个问题中匹配相似度前十的10个问题。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"># -*- coding:utf-8 -*-</span><br><span class="line">from gensim.models import Word2Vec</span><br><span class="line">import numpy as np</span><br><span class="line">import sys</span><br><span class="line">import jieba</span><br><span class="line">reload(sys)</span><br><span class="line">sys.setdefaultencoding(&quot;utf-8&quot;)</span><br><span class="line"></span><br><span class="line">target = &quot;./dataset/train_questions.txt&quot;</span><br><span class="line">model = &quot;./model/w2v.mod&quot;</span><br><span class="line"></span><br><span class="line">rand_i = np.random.choice(range(36190),size=500,replace=False)</span><br><span class="line">with open(target) as f, open(&quot;./dataset/target.txt&quot;, &quot;w&quot;) as f2:</span><br><span class="line">    count = 1</span><br><span class="line">    for line in f:</span><br><span class="line">        if count in rand_i:</span><br><span class="line">            f2.write(line)</span><br><span class="line">        count += 1</span><br><span class="line"></span><br><span class="line">class ResultInfo(object):</span><br><span class="line">    def __init__(self, index, score, text):</span><br><span class="line">        self.id = index</span><br><span class="line">        self.score = score</span><br><span class="line">        self.text = text</span><br><span class="line"></span><br><span class="line">model_loaded = Word2Vec.load(model)</span><br><span class="line"></span><br><span class="line">candidates = []</span><br><span class="line">with open(target) as f:</span><br><span class="line">    for line in f:</span><br><span class="line">        candidates.append(line.decode(&quot;utf-8&quot;).strip().split())</span><br><span class="line"></span><br><span class="line">while True:</span><br><span class="line">    text = raw_input(&quot;input sentence: &quot;).decode(&quot;utf-8&quot;)</span><br><span class="line">    words = list(jieba.cut(text.strip(), cut_all=False))</span><br><span class="line">    print len(words)</span><br><span class="line">    res = []</span><br><span class="line">    index = 0</span><br><span class="line">    for candidate in candidates:</span><br><span class="line">        # print candidate</span><br><span class="line">        score = model_loaded.n_similarity(words, candidate)</span><br><span class="line">        res.append(ResultInfo(index, score, &quot; &quot;.join(candidate)))</span><br><span class="line">        index += 1</span><br><span class="line">    res.sort(cmp=None, key=lambda x:x.score, reverse=True)</span><br><span class="line">    k = 0</span><br><span class="line">    for i in res:</span><br><span class="line">        k += 1</span><br><span class="line">        print &quot;text %s: %s, score : %s&quot; % (i.id, i.text, i.score)</span><br><span class="line">        if k &gt; 9:</span><br><span class="line">            break</span><br></pre></td></tr></table></figure></p>
+<p>文件dataset/train_questions.txt包括所有的问题集，对上面数据预处理脚本稍加修改可以得到，从该数据集中随机抽取500个问题保存到dataset/target.txt。之后load训练好的模型，利用n_similarity进行两个词序列的相似度计算，方法的输入参数是终端输入句子分词后的词序列以及候选目标词序列。</p>
+<p> 随机测试两个相关问题，确实能得到感人的结果：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">Using TensorFlow backend.</span><br><span class="line"></span><br><span class="line">input sentence: 编写史记的人受到了什么处罚</span><br><span class="line">text 414: 司马迁 收到 了 什么 刑罚, score : 0.835533210003</span><br><span class="line">text 437: 孔子 认为 可以 使人 温柔敦厚 的 儒家 经书 是 哪一部, score : 0.685654355168</span><br><span class="line">text 36: 复活 是 谁 的 作品, score : 0.668847026927</span><br><span class="line">text 158: 植物 人 的 神经系统 可能 没有 受到 损伤 的 部位 是, score : 0.666936575118</span><br><span class="line">text 314: 中庸 是 谁 的 著作, score : 0.651872698188</span><br><span class="line">text 487: 毛主席 的 战士 最 听 党 的话 这 首歌 反映 了 什么 地方 边防战士 的 生活, score : 0.643818242781</span><br><span class="line">text 198: 少年 韩寒 中学 肄业 却 出 了 一本 叫做 三重门 的 书 这 本书 的 体裁 是, score : 0.640927475925</span><br><span class="line">text 175: 孔子 创立 了 什么 学派, score : 0.639292126835</span><br><span class="line">text 366: 锯子 是 谁 发明 的, score : 0.630026412448</span><br><span class="line">text 363: 古人 对 幼年 的 儿童 的 代称 是, score : 0.627604867741</span><br><span class="line"></span><br><span class="line">input sentence: 谁是百度的总裁</span><br><span class="line">text 409: 百度 的 董事长 是 谁, score : 0.950410820636</span><br><span class="line">text 337: 阿里巴巴 的 总裁 是 谁, score : 0.902061296606</span><br><span class="line">text 330: 中国移动 老总 是 谁 啊, score : 0.817496001508</span><br><span class="line">text 323: 火影忍者 谁 是 名人 的 爸爸, score : 0.760750518611</span><br><span class="line">text 386: china 老大 是 谁, score : 0.758674075597</span><br><span class="line">text 234: 不能 说 的 秘密 导演 是 谁, score : 0.757126307252</span><br><span class="line">text 318: 李连杰 的 老婆 是 谁 呀, score : 0.743579774903</span><br><span class="line">text 317: 姐 的 儿子 是 我 什么 呢, score : 0.726849299939</span><br><span class="line">text 325: 中国 最后 一个 皇帝 是 谁 拜托 了 各位 谢谢, score : 0.726334050126</span><br><span class="line">text 477: 刘备 的 爸爸 是 谁, score : 0.724550888419</span><br></pre></td></tr></table></figure></p>
+<h5 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h5><p>这里简单对语料文本进行词向量的训练，并直接通过词序列向量求和取平均作为句子的向量表示，进行句子相似度的计算。这种方式简单粗暴，对于像文章中的短句，而且歧义少的文本有不错的效果。如果目标文本是长文，并且需要考虑词顺序，句子顺序的情况，这种简单的方法很难适应。</p>
+<p><a href="https://github.com/zqhZY/semanaly" target="_blank" rel="noopener">源码链接</a></p>
+<p>参考资源：<br><a href="https://radimrehurek.com/gensim/models/word2vec.html" target="_blank" rel="noopener">models.word2vec – Deep learning with word2vec</a><br><a href="http://blog.csdn.net/itplus/article/details/37969635" target="_blank" rel="noopener">word2vec 中的数学原理详解</a><br><a href="https://cs.stanford.edu/~quocle/paragraph_vector.pdf" target="_blank" rel="noopener">Distributed Representations of Sentences and Documents</a><br><a href="https://arxiv.org/abs/1411.2738" target="_blank" rel="noopener">word2vec Parameter Learning Explained</a></p>
+<p>[原创文章，转载注明出处,]<br>更多关注公众号：<br><img src="https://upload-images.jianshu.io/upload_images/2159902-e28220521b7ef499.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="wechat"></p>
+
+        </div>
+      </article>
+    </div>
+    <!-- Comments -->
+    <div class="container">
+      
+<section id="comment">
+  <!-- <h1 class="title">留言</h1> -->
+
+  
+</section>
+
+
+    </div>
+    <!-- Pre or Next -->
+    <div class="nav-links">
+      
+        <div class="nav-previous">
+          <a href="/2017/06/01/LSTM-句子相似度分析/" rel="prev"><span class="meta-arraw meta-arraw-left"></span> 上一页</a>
+        </div>
+      
+      
+        <div class="nav-next">
+          <a href="/2017/05/02/神经网络：文本分类II/" rel="prev">下一页 <span class="meta-arraw meta-arraw-right"></span></a>
+        </div>
+      
+    </div>
+
+  </div>
+</div>
+
+
+  <!-- Footer -->
+  <!-- Footer-widgets -->
+<div class="footer-widgets">
+  <div class="row inside-wrapper">
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">关于本站</h1>
+        <div class="custom-widget-content">
+          
+          <p align="left">分享日常学习，传播核心价值观，传播正能量。</p>
+        </div>
+      </aside>
+    </div>
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">与我联系</h1>
+        <div class="widget-text">
+          
+            
+              <a href="https://github.com/zqhZY" class="icon icon-github" target="_blank">github</a>
+            
+              <a href="zqingheng@163.com" class="icon icon-mail" target="_blank">mail</a>
+            
+          
+        </div>
+      </aside>
+    </div>
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">站内搜索</h1>
+        <div class="widget-text">
+          <form onSubmit="return appDaily.submitSearch('')">
+            <p>
+              <input type="text" placeholder="search..." id="homeSearchInput">
+            </p>
+            <!-- <input type="submit" value="GO"> -->
+          </form>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+<!-- Footer -->
+<footer class="site-info">
+  <p>
+    <span>A Note &copy; 2018</span>
+    
+      <span class="split">|</span>
+      <span>Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> with Theme <a href="https://github.com/GallenHu/hexo-theme-Daily" target="_blank">Daily</a></span>
+    
+  </p>
+</footer>
+
+
+  <!-- After footer scripts -->
+  <!-- scripts -->
+<script src="/js/app.js"></script>
+
+
+
+
+
+</body>
+
+</html>

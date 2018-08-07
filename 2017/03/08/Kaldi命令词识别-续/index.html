@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<!-- Head tag -->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+  <!--Description-->
+  
+
+  <!--Author-->
+  
+  <meta name="author" content="Zico">
+  
+
+  <!--Open Graph Title-->
+  
+      <meta property="og:title" content="Kaldi命令词识别(续)"/>
+  
+  <!--Open Graph Description-->
+  
+  <!--Open Graph Site Name-->
+  <meta property="og:site_name" content="A Note"/>
+  <!--Type page-->
+  
+      <meta property="og:type" content="article" />
+  
+  <!--Page Cover-->
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <!-- Title -->
+  
+  <title>Kaldi命令词识别(续) - A Note</title>
+
+
+  <link rel="shortcut icon" href="https://hexo.io/icon/favicon-96x96.png">
+
+  <!-- Custom CSS/Sass -->
+  <link rel="stylesheet" href="/css/style.css">
+
+  <!----------------------------
+  https://github.com/GallenHu/hexo-theme-Daily
+
+ _____            _   _
+|  __ \          (_) | |
+| |  | |   __ _   _  | |  _   _
+| |  | |  / _` | | | | | | | | |
+| |__| | | (_| | | | | | | |_| |
+|_____/   \__,_| |_| |_|  \__, |
+                          __/ |
+                         |___/
+
+    --------------------------->
+
+</head>
+
+
+<body>
+
+  <!-- Nav -->
+  <header class="site-header">
+  <div class="header-inside">
+    <div class="logo">
+      <a href="/" rel="home">
+        
+        <img src="https://hexo.io/logo.svg" alt="A Note" height="60">
+        
+      </a>
+    </div>
+    <!-- Navigation -->
+    <nav class="navbar">
+      <!-- Collect the nav links, forms, and other content for toggling -->
+      <div class="collapse">
+        <ul class="navbar-nav">
+          
+          
+            <li>
+              <a href="/.">
+                
+                  Home
+                
+              </a>
+            </li>
+          
+            <li>
+              <a href="/archives">
+                
+                  Archive
+                
+              </a>
+            </li>
+          
+        </ul>
+      </div>
+      <!-- /.navbar-collapse -->
+    </nav>
+    <div class="button-wrap">
+      <button class="menu-toggle">Primary Menu</button>
+    </div>
+  </div>
+</header>
+
+
+  <!-- Main Content -->
+  <div class="content-area">
+  <div class="post">
+    <!-- Post Content -->
+    <div class="container">
+      <article>
+        <!-- Title date & tags -->
+        <div class="post-header">
+          <h1 class="entry-title">
+            Kaldi命令词识别(续)
+            
+          </h1>
+          <p class="posted-on">
+          2017-03-08
+          </p>
+          <div class="tags-links">
+            
+              
+                <a href="/tags/ASR/" rel="tag">
+                  ASR
+                </a>
+              
+                <a href="/tags/kaldi/" rel="tag">
+                  kaldi
+                </a>
+              
+            
+          </div>
+        </div>
+        <!-- Post Main Content -->
+        <div class="entry-content has_line_number">
+          <p><img src="http://upload-images.jianshu.io/upload_images/2159902-9d879c6d854899f4.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="kaldi"><br><a id="more"></a></p>
+<h4 id="task4-特征提取（FMCC）"><a href="#task4-特征提取（FMCC）" class="headerlink" title="task4 : 特征提取（FMCC）"></a>task4 : 特征提取（FMCC）</h4><p> 完成了语言模型的构建，下面开始生成声学模型部分，首先对语音文件进行特征提取，这里用到了上面准备的文件，包括：text, wav.scp, utt2spk, spk2utt 。<br> run.sh中完成特征提取，并对语音进行归一化处理：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">#gen MFCC features</span><br><span class="line">rm -rf data/mfcc &amp;&amp; mkdir -p data/mfcc &amp;&amp;  cp -R data/&#123;train,cv,test&#125; data/mfcc || exit 1;</span><br><span class="line">for x in train cv test; do</span><br><span class="line">   #make  mfcc </span><br><span class="line">   steps/make_mfcc.sh --nj $n --cmd &quot;$train_cmd&quot; data/mfcc/$x exp/make_mfcc/$x mfcc/$x || exit 1;</span><br><span class="line">   #compute cmvn</span><br><span class="line">   steps/compute_cmvn_stats.sh data/mfcc/$x exp/mfcc_cmvn/$x mfcc/$x || exit 1;</span><br><span class="line">done</span><br><span class="line">``` </span><br><span class="line"></span><br><span class="line"> 生成的特征提取相关文件保存在data/mfcc目录下，真实的数据保存在mfcc/目录下。</span><br><span class="line">#### task5 : 训练声学模型、 构建解码图</span><br><span class="line">该部分调用kaldi脚本，训练单音节模型，后面测试证明，单个词汇的识别，该模型同样能保证良好的识别效果，同样run.sh脚本中：</span><br></pre></td></tr></table></figure>
+<p>#monophone</p>
+<p>#steps/train_mono.sh –boost-silence 1.25 –nj $n –cmd “$train_cmd” data/mfcc/train data/lang exp/mono || exit 1;</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">声学模型的训练结果文件保存在exp/mono目录下。下面构建解码图，这部分调用utils/mkgraph.sh， 利用先前创建的语言模型和上步训练的声学模型构建HCLG解码图，该部分生成的解码图保存在exp/mono/graph_word文件夹下：</span><br></pre></td></tr></table></figure>
+<p>utils/mkgraph.sh –mono –nj $n  data/graph/lang exp/mono exp/mono/graph_word  || exit 1;<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">#### task6: 测试 </span><br><span class="line"> 在local目录下创建data_decode.sh 脚本对解码步骤进行封装：</span><br></pre></td></tr></table></figure></p>
+<p>#!/bin/bash</p>
+<p>#decoding wrapper</p>
+<p>#run from ../<br>nj=2<br>mono=false<br>. ./cmd.sh ## You’ll want to change cmd.sh to something that will work on your system.<br>. ./path.sh ## Source the tools/utils (import the queue.pl)<br>. utils/parse_options.sh || exit 1;</p>
+<p>decoder=$1<br>srcdir=$2<br>datadir=$3</p>
+<p>if [ $mono = true ];then<br>  echo  “using monophone to generate graph”<br>  opt=”–mono”<br>fi</p>
+<p>#decode word<br>$decoder –cmd “$decode_cmd”  $srcdir/graph_word $datadir/test $srcdir/decode_test_word || exit 1</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">在run.sh脚本中调用上脚本：</span><br></pre></td></tr></table></figure>
+<p>#test mono model<br>local/data_decode.sh –nj 2 “steps/decode.sh” exp/mono data/mfcc &amp;<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">这里注意由于测试集只有两个说话者，并发度设置为2，否则会出现文件分割数与并发数不匹配的情况，解码过程主要用到特征提取后的test文件，上部分生成的解码图，测试结果在exp/mono/decode_test_word文件夹中查看。</span><br><span class="line"></span><br><span class="line">为了对测试结果进行评估，还需在local目录下完成打分脚本相关的代码，这里参考thchs30，拷贝文件：score.sh、wer_output_filter 。</span><br><span class="line"></span><br><span class="line">下面给出完整的run.sh脚本，之后运行脚本：</span><br></pre></td></tr></table></figure></p>
+<p>#!/bin/bash</p>
+<p>. ./cmd.sh<br>. ./path.sh</p>
+<p>run_path=<code>pwd</code><br>n=8 #parallel jobs</p>
+<p>#dataset path<br>dataset=~/dataset_wakeup</p>
+<p>#data prepare</p>
+<p>#gen text, wav.scp, utt2spk, spk2utt<br>local/data_prep.sh $run_path $dataset/King-ASR-M-005 || exit 1</p>
+<p>#gen lang dir<br>(<br>    echo “create new dir data/dict,lang,graph”<br>    cd $run_path<br>    mkdir -p data/{dict,lang,graph} &amp;&amp; \<br>    cp $dataset//resource/dict/{extra_questions.txt,nonsilence_phones.txt,optional_silence.txt,silence_phones.txt} data/dict &amp;&amp; \<br>    cat $dataset/resource/dict/lexicon.txt | \<br>    grep -v ‘<s>‘ | grep -v ‘</s>‘ | sort -u &gt; data/dict/lexicon.txt || exit 1;<br>    utils/prepare_lang.sh –position_dependent_phones false data/dict “&lt;SPOKEN_NOISE&gt;” data/local/lang data/lang || exit 1;<br>    gzip -c $dataset/King-ASR-M-005/lm_word/word.arpa &gt; data/graph/word.arpa.gz || exit 1;<br>    utils/format_lm.sh data/lang data/graph/word.arpa.gz $dataset/King-ASR-M-005/lm_word/lexicon.txt data/graph/lang || exit 1;<br>)</p>
+<p>#gen MFCC features<br>rm -rf data/mfcc &amp;&amp; mkdir -p data/mfcc &amp;&amp;  cp -R data/{train,cv,test} data/mfcc || exit 1;<br>for x in train cv test; do</p>
+<p>   #make  mfcc<br>   steps/make_mfcc.sh –nj $n –cmd “$train_cmd” data/mfcc/$x exp/make_mfcc/$x mfcc/$x || exit 1;</p>
+<p>   #compute cmvn<br>   steps/compute_cmvn_stats.sh data/mfcc/$x exp/mfcc_cmvn/$x mfcc/$x || exit 1;<br>done</p>
+<p>#monophone<br>steps/train_mono.sh –boost-silence 1.25 –nj $n –cmd “$train_cmd” data/mfcc/train data/lang exp/mono || exit 1;</p>
+<p>#decode word</p>
+<h1 id="make-decoder-graph"><a href="#make-decoder-graph" class="headerlink" title="make decoder graph"></a>make decoder graph</h1><p>utils/mkgraph.sh –mono  data/graph/lang exp/mono exp/mono/graph_word  || exit 1;</p>
+<p>#test mono model<br>local/data_decode.sh –nj 2 “steps/decode.sh” exp/mono data/mfcc &amp;</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">运行脚本，由于数据量不大，并不需要很长时间，运行测试结束查看效果：</span><br></pre></td></tr></table></figure>
+<p>[uesrname@hostname scoring_kaldi]$ ls<br>best_wer  log  penalty_0.0  penalty_0.5  penalty_1.0  test_filt.txt  wer_details<br>[uesrname@hostname scoring_kaldi]$ more best_wer<br>%WER 5.57 [ 100 / 1795, 19 ins, 4 del, 77 sub ] exp/mono/decode_test_word/wer_17_1.0<br><code>`</code><br> 错词率为5.57%，在penalty_1.0中可以查看最好的识别结果。</p>
+<h4 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h4><p> 文章记录了从拿到语料库，到应用Kaldi的全过程，主要想对流程进行总结，对语音识别相关的原理没有涉及太多。另外这里仅仅训练了单音节模型，其他模型可以参照thchs30完成，这里不再补充。<br> 过程中遇到的小问题很多，一个比较典型的，一开始想偷懒直接使用thchs30的词典，后来识别结果很差，单词均为一个或两个毫不相干的字。考虑自己语料库中的词汇在thchs30的词典中并未涉及，还是通过自己标注词典解决问题。</p>
+<p>更多关注公众号：<br><img src="https://upload-images.jianshu.io/upload_images/2159902-e28220521b7ef499.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="wechat"></p>
+
+        </div>
+      </article>
+    </div>
+    <!-- Comments -->
+    <div class="container">
+      
+<section id="comment">
+  <!-- <h1 class="title">留言</h1> -->
+
+  
+</section>
+
+
+    </div>
+    <!-- Pre or Next -->
+    <div class="nav-links">
+      
+        <div class="nav-previous">
+          <a href="/2017/03/20/ASR-特征提取/" rel="prev"><span class="meta-arraw meta-arraw-left"></span> 上一页</a>
+        </div>
+      
+      
+        <div class="nav-next">
+          <a href="/2017/03/01/Kaldi命令词识别/" rel="prev">下一页 <span class="meta-arraw meta-arraw-right"></span></a>
+        </div>
+      
+    </div>
+
+  </div>
+</div>
+
+
+  <!-- Footer -->
+  <!-- Footer-widgets -->
+<div class="footer-widgets">
+  <div class="row inside-wrapper">
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">关于本站</h1>
+        <div class="custom-widget-content">
+          
+          <p align="left">分享日常学习，传播核心价值观，传播正能量。</p>
+        </div>
+      </aside>
+    </div>
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">与我联系</h1>
+        <div class="widget-text">
+          
+            
+              <a href="https://github.com/zqhZY" class="icon icon-github" target="_blank">github</a>
+            
+              <a href="zqingheng@163.com" class="icon icon-mail" target="_blank">mail</a>
+            
+          
+        </div>
+      </aside>
+    </div>
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">站内搜索</h1>
+        <div class="widget-text">
+          <form onSubmit="return appDaily.submitSearch('')">
+            <p>
+              <input type="text" placeholder="search..." id="homeSearchInput">
+            </p>
+            <!-- <input type="submit" value="GO"> -->
+          </form>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+<!-- Footer -->
+<footer class="site-info">
+  <p>
+    <span>A Note &copy; 2018</span>
+    
+      <span class="split">|</span>
+      <span>Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> with Theme <a href="https://github.com/GallenHu/hexo-theme-Daily" target="_blank">Daily</a></span>
+    
+  </p>
+</footer>
+
+
+  <!-- After footer scripts -->
+  <!-- scripts -->
+<script src="/js/app.js"></script>
+
+
+
+
+
+</body>
+
+</html>

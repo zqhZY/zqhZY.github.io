@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<!-- Head tag -->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+  <!--Description-->
+  
+
+  <!--Author-->
+  
+  <meta name="author" content="Zico">
+  
+
+  <!--Open Graph Title-->
+  
+      <meta property="og:title" content="强化学习(一)"/>
+  
+  <!--Open Graph Description-->
+  
+  <!--Open Graph Site Name-->
+  <meta property="og:site_name" content="A Note"/>
+  <!--Type page-->
+  
+      <meta property="og:type" content="article" />
+  
+  <!--Page Cover-->
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <!-- Title -->
+  
+  <title>强化学习(一) - A Note</title>
+
+
+  <link rel="shortcut icon" href="https://hexo.io/icon/favicon-96x96.png">
+
+  <!-- Custom CSS/Sass -->
+  <link rel="stylesheet" href="/css/style.css">
+
+  <!----------------------------
+  https://github.com/GallenHu/hexo-theme-Daily
+
+ _____            _   _
+|  __ \          (_) | |
+| |  | |   __ _   _  | |  _   _
+| |  | |  / _` | | | | | | | | |
+| |__| | | (_| | | | | | | |_| |
+|_____/   \__,_| |_| |_|  \__, |
+                          __/ |
+                         |___/
+
+    --------------------------->
+
+</head>
+
+
+<body>
+
+  <!-- Nav -->
+  <header class="site-header">
+  <div class="header-inside">
+    <div class="logo">
+      <a href="/" rel="home">
+        
+        <img src="https://hexo.io/logo.svg" alt="A Note" height="60">
+        
+      </a>
+    </div>
+    <!-- Navigation -->
+    <nav class="navbar">
+      <!-- Collect the nav links, forms, and other content for toggling -->
+      <div class="collapse">
+        <ul class="navbar-nav">
+          
+          
+            <li>
+              <a href="/.">
+                
+                  Home
+                
+              </a>
+            </li>
+          
+            <li>
+              <a href="/archives">
+                
+                  Archive
+                
+              </a>
+            </li>
+          
+        </ul>
+      </div>
+      <!-- /.navbar-collapse -->
+    </nav>
+    <div class="button-wrap">
+      <button class="menu-toggle">Primary Menu</button>
+    </div>
+  </div>
+</header>
+
+
+  <!-- Main Content -->
+  <div class="content-area">
+  <div class="post">
+    <!-- Post Content -->
+    <div class="container">
+      <article>
+        <!-- Title date & tags -->
+        <div class="post-header">
+          <h1 class="entry-title">
+            强化学习(一)
+            
+          </h1>
+          <p class="posted-on">
+          2018-05-20
+          </p>
+          <div class="tags-links">
+            
+              
+                <a href="/tags/DNN/" rel="tag">
+                  DNN
+                </a>
+              
+                <a href="/tags/RL/" rel="tag">
+                  RL
+                </a>
+              
+            
+          </div>
+        </div>
+        <!-- Post Main Content -->
+        <div class="entry-content has_line_number">
+          <p>偶然遇到一篇论文, 使用强化学习搞实体关系抽尝试取解决远程监督带来的数据噪声问题,由于之前调研过关系抽取相关的技术方法,瞬间感叹RL还可以这样用！虽然之前也了解过强化学习用在NLP上的一些方式，但一直是知道个思路，对RL具体技术方法仍然不甚了解。因此，工作之余，茶语饭后，刷了一些课程，读了一些书籍资料，并打算整理一波。<br><a id="more"></a></p>
+<p>网上RL的文章资料非常之多，因此文章避免概念性介绍，更是一种笔记形式，主要希望理清RL主要算法及其关系，包括三部分：</p>
+<ul>
+<li>强化学习算法分类和关系</li>
+<li>经典强化学习算法理解与实现</li>
+<li>强化学习感性与理论理解</li>
+</ul>
+<h4 id="强化学习分类："><a href="#强化学习分类：" class="headerlink" title="强化学习分类："></a>强化学习分类：</h4><p>强化学习的算法非常多，也可以有多种不同的分类方法，大体上可以分为基于值函数的方法（包括动态规划、时序差分学习等）、基于策略函数的方法（包括策略梯度等）以及融合两者<br>的方法。不同算法之间的关系如图：<br><img src="https://upload-images.jianshu.io/upload_images/2159902-d84c56828f97a1c6.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="classifiy.png"></p>
+<p>另外也可以从model based 和model free的角度来分：<br><img src="https://upload-images.jianshu.io/upload_images/2159902-5d7b58103384d9bf.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="model_classifiy.png"></p>
+<p>不同的方法也各有其特点，可以在后面做相应总结，后面的文章分别从Policy based经典算法和Value based的经典算法细细展开。</p>
+<h3 id="经典强化学习算法"><a href="#经典强化学习算法" class="headerlink" title="经典强化学习算法"></a>经典强化学习算法</h3><p>强化学习的经典算法分别按Policy based和Value based展开来讲，整体脉络和李宏毅老师的强化学习课程一致，最后会结合David Silver的课程中的理论，尝试把知识串联在一起。</p>
+<p>后面的内容结构包括：<br><img src="https://upload-images.jianshu.io/upload_images/2159902-ffa1eb5882890a85.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<p>可以理解Policy based方法是学习一个可以做决策的Actor，希望在某一个状态下做一个最有益的决策；Value based方法是学习一个reward评估的Critic，评估在某个状态下采取每个action可能获得的收益。进一步有：</p>
+<ul>
+<li>Policy based 算法：<ul>
+<li>Policy Gradient</li>
+<li>Proximal Policy Optimization（PPO）</li>
+<li>Distributed Proximal Policy Optimization（DPPO）</li>
+</ul>
+</li>
+<li>Value based 算法<ul>
+<li>Q learning</li>
+</ul>
+</li>
+<li>Actor-Critic算法 （Policy和Value的结合）</li>
+</ul>
+<p>原创文章，转载注明出处。<br>更多关注公众号：<br><img src="https://upload-images.jianshu.io/upload_images/2159902-e28220521b7ef499.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="wechat"></p>
+
+        </div>
+      </article>
+    </div>
+    <!-- Comments -->
+    <div class="container">
+      
+<section id="comment">
+  <!-- <h1 class="title">留言</h1> -->
+
+  
+</section>
+
+
+    </div>
+    <!-- Pre or Next -->
+    <div class="nav-links">
+      
+        <div class="nav-previous">
+          <a href="/2018/05/30/强化学习-二-：Policy-Gradient/" rel="prev"><span class="meta-arraw meta-arraw-left"></span> 上一页</a>
+        </div>
+      
+      
+        <div class="nav-next">
+          <a href="/2017/12/22/Rasa-Core源码之Policy训练/" rel="prev">下一页 <span class="meta-arraw meta-arraw-right"></span></a>
+        </div>
+      
+    </div>
+
+  </div>
+</div>
+
+
+  <!-- Footer -->
+  <!-- Footer-widgets -->
+<div class="footer-widgets">
+  <div class="row inside-wrapper">
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">关于本站</h1>
+        <div class="custom-widget-content">
+          
+          <p align="left">分享日常学习，传播核心价值观，传播正能量。</p>
+        </div>
+      </aside>
+    </div>
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">与我联系</h1>
+        <div class="widget-text">
+          
+            
+              <a href="https://github.com/zqhZY" class="icon icon-github" target="_blank">github</a>
+            
+              <a href="zqingheng@163.com" class="icon icon-mail" target="_blank">mail</a>
+            
+          
+        </div>
+      </aside>
+    </div>
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">站内搜索</h1>
+        <div class="widget-text">
+          <form onSubmit="return appDaily.submitSearch('')">
+            <p>
+              <input type="text" placeholder="search..." id="homeSearchInput">
+            </p>
+            <!-- <input type="submit" value="GO"> -->
+          </form>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+<!-- Footer -->
+<footer class="site-info">
+  <p>
+    <span>A Note &copy; 2018</span>
+    
+      <span class="split">|</span>
+      <span>Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> with Theme <a href="https://github.com/GallenHu/hexo-theme-Daily" target="_blank">Daily</a></span>
+    
+  </p>
+</footer>
+
+
+  <!-- After footer scripts -->
+  <!-- scripts -->
+<script src="/js/app.js"></script>
+
+
+
+
+
+</body>
+
+</html>

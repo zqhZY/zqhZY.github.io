@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<!-- Head tag -->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+  <!--Description-->
+  
+
+  <!--Author-->
+  
+  <meta name="author" content="Zico">
+  
+
+  <!--Open Graph Title-->
+  
+      <meta property="og:title" content="ASR:特征提取"/>
+  
+  <!--Open Graph Description-->
+  
+  <!--Open Graph Site Name-->
+  <meta property="og:site_name" content="A Note"/>
+  <!--Type page-->
+  
+      <meta property="og:type" content="article" />
+  
+  <!--Page Cover-->
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <!-- Title -->
+  
+  <title>ASR:特征提取 - A Note</title>
+
+
+  <link rel="shortcut icon" href="https://hexo.io/icon/favicon-96x96.png">
+
+  <!-- Custom CSS/Sass -->
+  <link rel="stylesheet" href="/css/style.css">
+
+  <!----------------------------
+  https://github.com/GallenHu/hexo-theme-Daily
+
+ _____            _   _
+|  __ \          (_) | |
+| |  | |   __ _   _  | |  _   _
+| |  | |  / _` | | | | | | | | |
+| |__| | | (_| | | | | | | |_| |
+|_____/   \__,_| |_| |_|  \__, |
+                          __/ |
+                         |___/
+
+    --------------------------->
+
+</head>
+
+
+<body>
+
+  <!-- Nav -->
+  <header class="site-header">
+  <div class="header-inside">
+    <div class="logo">
+      <a href="/" rel="home">
+        
+        <img src="https://hexo.io/logo.svg" alt="A Note" height="60">
+        
+      </a>
+    </div>
+    <!-- Navigation -->
+    <nav class="navbar">
+      <!-- Collect the nav links, forms, and other content for toggling -->
+      <div class="collapse">
+        <ul class="navbar-nav">
+          
+          
+            <li>
+              <a href="/.">
+                
+                  Home
+                
+              </a>
+            </li>
+          
+            <li>
+              <a href="/archives">
+                
+                  Archive
+                
+              </a>
+            </li>
+          
+        </ul>
+      </div>
+      <!-- /.navbar-collapse -->
+    </nav>
+    <div class="button-wrap">
+      <button class="menu-toggle">Primary Menu</button>
+    </div>
+  </div>
+</header>
+
+
+  <!-- Main Content -->
+  <div class="content-area">
+  <div class="post">
+    <!-- Post Content -->
+    <div class="container">
+      <article>
+        <!-- Title date & tags -->
+        <div class="post-header">
+          <h1 class="entry-title">
+            ASR:特征提取
+            
+          </h1>
+          <p class="posted-on">
+          2017-03-20
+          </p>
+          <div class="tags-links">
+            
+              
+                <a href="/tags/ASR/" rel="tag">
+                  ASR
+                </a>
+              
+            
+          </div>
+        </div>
+        <!-- Post Main Content -->
+        <div class="entry-content has_line_number">
+          <p>在不深究具体过程的前提下理一理语音识别中特征提取的基本过程，并通过kaldi对该过程进行操作，得出相应结果。以梅尔倒普系数MFCC为例，对于语音信号，处理如下：<br><a id="more"></a></p>
+<ul>
+<li>Input is 16kHz sampled audio.</li>
+<li>Take a 25ms window (shift by 10 ms each time; we will output a sequence of vectors, one every 10ms)</li>
+<li>Multiply by windowing function e.g. Hamming</li>
+<li>Do fourier transform FFT</li>
+<li>Take log energy in each frequency bin</li>
+<li>Do discrete cosine transform (DCT): (gives us the “cepstrum”)</li>
+<li><p>Keep the first 13 coefficients of the cepstrum.</p>
+<p>在kaldi工具下，完成上述过程需要一条命令（steps/make_mfcc.sh）</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">#gen MFCC features</span><br><span class="line">for x in train cv test; do</span><br><span class="line">   #make  mfcc </span><br><span class="line">   steps/make_mfcc.sh --nj $n --cmd &quot;$train_cmd&quot; data/mfcc/$x exp/make_mfcc/$x mfcc/$x || exit 1;</span><br><span class="line">   #compute cmvn</span><br><span class="line">   steps/compute_cmvn_stats.sh data/mfcc/$x exp/mfcc_cmvn/$x mfcc/$x || exit 1;</span><br><span class="line">done</span><br></pre></td></tr></table></figure>
+<p>steps/make_mfcc.sh命令指定参数包括 data-dir、 log-dir、mfcc-dir，分别指定原数据位置、日志输出目录、和提取结果目录。 steps/compute_cmvn_stats.sh 用于对说话人语音的特征取均值和方差。</p>
+<p>完成MFCC特征提取后，查看结果：</p>
+</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ copy-matrix ark:raw_mfcc_train.1.ark ark,t:- | head copy-matrix ark:raw_mfcc_train.1.ark ark,t:- </span><br><span class="line">speaker001_00001  [</span><br><span class="line">  27.54613 -20.59882 -9.078632 -9.878078 -3.408179 -6.33442 -7.088059 -9.386513 -9.514486 5.714392 3.923563 -0.2056017 -6.208587 </span><br><span class="line"> ...]</span><br></pre></td></tr></table></figure>
+<p> 语音speaker001_00001被以帧为单位转化为13维向量集，接着为了以后对说话人进行自适应，对每个说话者求倒普均值与方差，这里用到了spk2utt和feats.scp两个映射文件， 查看结果：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">$ copy-matrix ark:cmvn_train.ark ark,t:- </span><br><span class="line">copy-matrix ark:cmvn_train.ark ark,t:- </span><br><span class="line">speaker001  [</span><br><span class="line">  3153345 -332630 -150518.8 -129893.8 -416410.7 -370985.3 -160386.6 17840.54 -276749.9 -312077.3 -381611.7 -315793.8 -147651.9 46141 </span><br><span class="line">  2.236304e+08 6630422 6846200 7327799 1.325839e+07 1.371075e+07 1.077766e+07 7187704 1.197414e+07 8830369 1.272681e+07 1.092798e+07 5399742 0 ]</span><br><span class="line">speaker002  [</span><br><span class="line">  4278844 -475446.6 -279641.1 -196591.9 -759722.8 -208586.2 117607.6 -258971.1 -547313 -553619.6 -266483.2 40984.47 48301.47 63223 </span><br><span class="line">  2.995394e+08 7515546 8840850 1.154735e+07 3.502638e+07 1.221414e+07 9032753 1.709921e+07 1.77456e+07 1.534125e+07 7840884 7368065 9012588 0 ]</span><br></pre></td></tr></table></figure></p>
+<h4 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h4><p>通过上面的过程，可以知道，对于一段语音，首先对其进行分帧（如，每10ms取25ms的窗口作为一帧），对每一帧进行平滑（加窗，如汉明窗），之后进行FFT（快速傅里叶变化）将连续信号转化为数字信号，  再进行离散余弦变换（DCT）得到一个多维向量，最后取前13维作为最后的MFCC。重复该过程，得到一段语音每个帧的特征向量。<br>更多关注公众号：<br><img src="https://upload-images.jianshu.io/upload_images/2159902-e28220521b7ef499.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="wechat"></p>
+
+        </div>
+      </article>
+    </div>
+    <!-- Comments -->
+    <div class="container">
+      
+<section id="comment">
+  <!-- <h1 class="title">留言</h1> -->
+
+  
+</section>
+
+
+    </div>
+    <!-- Pre or Next -->
+    <div class="nav-links">
+      
+        <div class="nav-previous">
+          <a href="/2017/04/01/ASR-DNN训练/" rel="prev"><span class="meta-arraw meta-arraw-left"></span> 上一页</a>
+        </div>
+      
+      
+        <div class="nav-next">
+          <a href="/2017/03/08/Kaldi命令词识别-续/" rel="prev">下一页 <span class="meta-arraw meta-arraw-right"></span></a>
+        </div>
+      
+    </div>
+
+  </div>
+</div>
+
+
+  <!-- Footer -->
+  <!-- Footer-widgets -->
+<div class="footer-widgets">
+  <div class="row inside-wrapper">
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">关于本站</h1>
+        <div class="custom-widget-content">
+          
+          <p align="left">分享日常学习，传播核心价值观，传播正能量。</p>
+        </div>
+      </aside>
+    </div>
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">与我联系</h1>
+        <div class="widget-text">
+          
+            
+              <a href="https://github.com/zqhZY" class="icon icon-github" target="_blank">github</a>
+            
+              <a href="zqingheng@163.com" class="icon icon-mail" target="_blank">mail</a>
+            
+          
+        </div>
+      </aside>
+    </div>
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">站内搜索</h1>
+        <div class="widget-text">
+          <form onSubmit="return appDaily.submitSearch('')">
+            <p>
+              <input type="text" placeholder="search..." id="homeSearchInput">
+            </p>
+            <!-- <input type="submit" value="GO"> -->
+          </form>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+<!-- Footer -->
+<footer class="site-info">
+  <p>
+    <span>A Note &copy; 2018</span>
+    
+      <span class="split">|</span>
+      <span>Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> with Theme <a href="https://github.com/GallenHu/hexo-theme-Daily" target="_blank">Daily</a></span>
+    
+  </p>
+</footer>
+
+
+  <!-- After footer scripts -->
+  <!-- scripts -->
+<script src="/js/app.js"></script>
+
+
+
+
+
+</body>
+
+</html>

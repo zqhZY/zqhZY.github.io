@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<!-- Head tag -->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+  <!--Description-->
+  
+
+  <!--Author-->
+  
+  <meta name="author" content="Zico">
+  
+
+  <!--Open Graph Title-->
+  
+      <meta property="og:title" content="Spacy 使用中文WordVector"/>
+  
+  <!--Open Graph Description-->
+  
+  <!--Open Graph Site Name-->
+  <meta property="og:site_name" content="A Note"/>
+  <!--Type page-->
+  
+      <meta property="og:type" content="article" />
+  
+  <!--Page Cover-->
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <!-- Title -->
+  
+  <title>Spacy 使用中文WordVector - A Note</title>
+
+
+  <link rel="shortcut icon" href="https://hexo.io/icon/favicon-96x96.png">
+
+  <!-- Custom CSS/Sass -->
+  <link rel="stylesheet" href="/css/style.css">
+
+  <!----------------------------
+  https://github.com/GallenHu/hexo-theme-Daily
+
+ _____            _   _
+|  __ \          (_) | |
+| |  | |   __ _   _  | |  _   _
+| |  | |  / _` | | | | | | | | |
+| |__| | | (_| | | | | | | |_| |
+|_____/   \__,_| |_| |_|  \__, |
+                          __/ |
+                         |___/
+
+    --------------------------->
+
+</head>
+
+
+<body>
+
+  <!-- Nav -->
+  <header class="site-header">
+  <div class="header-inside">
+    <div class="logo">
+      <a href="/" rel="home">
+        
+        <img src="https://hexo.io/logo.svg" alt="A Note" height="60">
+        
+      </a>
+    </div>
+    <!-- Navigation -->
+    <nav class="navbar">
+      <!-- Collect the nav links, forms, and other content for toggling -->
+      <div class="collapse">
+        <ul class="navbar-nav">
+          
+          
+            <li>
+              <a href="/.">
+                
+                  Home
+                
+              </a>
+            </li>
+          
+            <li>
+              <a href="/archives">
+                
+                  Archive
+                
+              </a>
+            </li>
+          
+        </ul>
+      </div>
+      <!-- /.navbar-collapse -->
+    </nav>
+    <div class="button-wrap">
+      <button class="menu-toggle">Primary Menu</button>
+    </div>
+  </div>
+</header>
+
+
+  <!-- Main Content -->
+  <div class="content-area">
+  <div class="post">
+    <!-- Post Content -->
+    <div class="container">
+      <article>
+        <!-- Title date & tags -->
+        <div class="post-header">
+          <h1 class="entry-title">
+            Spacy 使用中文WordVector
+            
+          </h1>
+          <p class="posted-on">
+          2017-10-07
+          </p>
+          <div class="tags-links">
+            
+              
+                <a href="/tags/NLP/" rel="tag">
+                  NLP
+                </a>
+              
+                <a href="/tags/源码/" rel="tag">
+                  源码
+                </a>
+              
+            
+          </div>
+        </div>
+        <!-- Post Main Content -->
+        <div class="entry-content has_line_number">
+          <p>Spacy 目前支持jieba中文分词，尝试使用Spacy导入预训练的wordvector，最后测试基于wordvector的词语相似度。<br><a id="more"></a><br>不同于早期版本，Spacy 2.0对词向量等模型的load和save接口做了修改，这里使用Spacy 2.0进行测试，用了官方的一段代码：</p>
+<p>loadvector.py :<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line">#!/usr/bin/env python</span><br><span class="line"># coding: utf8</span><br><span class="line">&quot;&quot;&quot;Load vectors for a language trained using fastText</span><br><span class="line">https://github.com/facebookresearch/fastText/blob/master/pretrained-vectors.md</span><br><span class="line">Compatible with: spaCy v2.0.0+</span><br><span class="line">&quot;&quot;&quot;</span><br><span class="line">from __future__ import unicode_literals</span><br><span class="line">import plac</span><br><span class="line">import numpy</span><br><span class="line"></span><br><span class="line">import spacy</span><br><span class="line">from spacy.language import Language</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">@plac.annotations(</span><br><span class="line">    vectors_loc=(&quot;Path to .vec file&quot;, &quot;positional&quot;, None, str),</span><br><span class="line">    lang=(&quot;Optional language ID. If not set, blank Language() will be used.&quot;,</span><br><span class="line">          &quot;positional&quot;, None, str))</span><br><span class="line">def main(vectors_loc, lang=None):</span><br><span class="line">    if lang is None:</span><br><span class="line">        nlp = Language()</span><br><span class="line">    else:</span><br><span class="line">        # create empty language class – this is required if you&apos;re planning to</span><br><span class="line">        # save the model to disk and load it back later (models always need a</span><br><span class="line">        # &quot;lang&quot; setting). Use &apos;xx&apos; for blank multi-language class.</span><br><span class="line">        nlp = spacy.blank(lang)</span><br><span class="line">    with open(vectors_loc, &apos;rb&apos;) as file_:</span><br><span class="line">        header = file_.readline()</span><br><span class="line">        nr_row, nr_dim = header.split()</span><br><span class="line">        print(nr_row, nr_dim)</span><br><span class="line"></span><br><span class="line">        nlp.vocab.reset_vectors(width=int(nr_dim))</span><br><span class="line">        for line in file_:</span><br><span class="line">            line = line.rstrip().decode(&apos;utf8&apos;)</span><br><span class="line">            pieces = line.rsplit(&apos; &apos;, int(nr_dim))</span><br><span class="line">            word = pieces[0]</span><br><span class="line">            vector = numpy.asarray([float(v) for v in pieces[1:]], dtype=&apos;f&apos;)</span><br><span class="line">            nlp.vocab.set_vector(word, vector)  # add the vectors to the vocab</span><br><span class="line">    # test the vectors and similarity</span><br><span class="line">    text = &apos;您好,你好&apos;</span><br><span class="line">    doc = nlp(text)</span><br><span class="line">    print(text, doc[0].similarity(doc[2]))</span><br><span class="line">    nlp.to_disk(&quot;./zh_model&quot;)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">if __name__ == &apos;__main__&apos;:</span><br><span class="line">    plac.call(main)</span><br></pre></td></tr></table></figure></p>
+<p>运行代码，传入Word2vector路径，这里的词向量使用fasttext训练的非二进制文件：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">17484 100</span><br><span class="line">的 -0.093497 -0.16838 -0.31183 0.18158 0.14234 0.047932 -0.17727 -0.11675 0.037068 -0.090361 -0.24306 0.096267 -0.17542 0.17559 -0.012545 0.1336 0.13552 -0.10716 0.10519 -0.076989 -0.11632 -0.14894</span><br><span class="line"> -0.099211 -0.068264 -0.16019 -0.20795 0.10994 -0.19069 -0.070186 -0.10722 0.056536 0.037165 -0.16839 -0.2232 -0.42118 -0.25819 0.086529 0.18487 -0.044813 0.07809 0.15395 0.096284 -0.0054108 0.0963</span><br><span class="line">5 0.045701 0.11826 0.02093 -0.061605 -0.069395 0.098948 -0.093462 -0.10125 -0.14047 0.12453 -0.1935 0.12049 -0.25669 0.08099 -0.086279 0.23138 -0.097905 -0.19973 0.34899 0.11208 -0.025583 -0.11361 </span><br><span class="line">-0.23792 -0.32146 0.25924 -0.013813 -0.2467 0.039815 -0.073362 -0.31727 -0.050605 0.075048 -0.25274 0.18276 0.097259 0.17918 -0.052097 -0.24945 -0.034484 -0.093092 0.095478 -0.017527 0.03188 0.0355</span><br><span class="line">25 -0.26906 0.016382 -0.22175 -0.061337 -0.15386 -0.12769 0.115 0.082991 -0.055711 0.033301 0.0084445 0.1597</span><br></pre></td></tr></table></figure></p>
+<p>运行代码，指定中文语言（zh）<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python loadvector.py ./tests/data/mobile.vec zh</span><br></pre></td></tr></table></figure></p>
+<p>这时候会在zh_model下生成模型。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">zh_model</span><br><span class="line">├── meta.json</span><br><span class="line">├── tokenizer</span><br><span class="line">└── vocab</span><br><span class="line">    ├── key2row</span><br><span class="line">    ├── lexemes.bin</span><br><span class="line">    ├── strings.json</span><br><span class="line">    └── vectors</span><br></pre></td></tr></table></figure>
+<p>之后就可以调用spacy.load(“./zh_model”)使用模型。</p>
+<h4 id="小结："><a href="#小结：" class="headerlink" title="小结："></a>小结：</h4><p>在调用spacy.load(“./zh_model”)时当前版本会抛出：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ValueError: No valid &apos;lang&apos; setting found in model meta.json</span><br></pre></td></tr></table></figure></p>
+<p>原因是spacy中文支持没有实现meta.json信息的写入，仿照其他语言实现该部分，并向spacy提了issue和pull request，想不到第二天就被merge。最后引用spacy开发者指南上的一句话:</p>
+<blockquote>
+<p>You don’t have to be an NLP expert or Python pro to contribute, and we’re happy to help you get started.<br>更多关注公众号：<br><img src="https://upload-images.jianshu.io/upload_images/2159902-e28220521b7ef499.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="wechat"></p>
+</blockquote>
+
+        </div>
+      </article>
+    </div>
+    <!-- Comments -->
+    <div class="container">
+      
+<section id="comment">
+  <!-- <h1 class="title">留言</h1> -->
+
+  
+</section>
+
+
+    </div>
+    <!-- Pre or Next -->
+    <div class="nav-links">
+      
+        <div class="nav-previous">
+          <a href="/2017/12/01/基于rasa的对话系统搭建（上）/" rel="prev"><span class="meta-arraw meta-arraw-left"></span> 上一页</a>
+        </div>
+      
+      
+        <div class="nav-next">
+          <a href="/2017/08/20/pytorch源码：C拓展/" rel="prev">下一页 <span class="meta-arraw meta-arraw-right"></span></a>
+        </div>
+      
+    </div>
+
+  </div>
+</div>
+
+
+  <!-- Footer -->
+  <!-- Footer-widgets -->
+<div class="footer-widgets">
+  <div class="row inside-wrapper">
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">关于本站</h1>
+        <div class="custom-widget-content">
+          
+          <p align="left">分享日常学习，传播核心价值观，传播正能量。</p>
+        </div>
+      </aside>
+    </div>
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">与我联系</h1>
+        <div class="widget-text">
+          
+            
+              <a href="https://github.com/zqhZY" class="icon icon-github" target="_blank">github</a>
+            
+              <a href="zqingheng@163.com" class="icon icon-mail" target="_blank">mail</a>
+            
+          
+        </div>
+      </aside>
+    </div>
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">站内搜索</h1>
+        <div class="widget-text">
+          <form onSubmit="return appDaily.submitSearch('')">
+            <p>
+              <input type="text" placeholder="search..." id="homeSearchInput">
+            </p>
+            <!-- <input type="submit" value="GO"> -->
+          </form>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+<!-- Footer -->
+<footer class="site-info">
+  <p>
+    <span>A Note &copy; 2018</span>
+    
+      <span class="split">|</span>
+      <span>Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> with Theme <a href="https://github.com/GallenHu/hexo-theme-Daily" target="_blank">Daily</a></span>
+    
+  </p>
+</footer>
+
+
+  <!-- After footer scripts -->
+  <!-- scripts -->
+<script src="/js/app.js"></script>
+
+
+
+
+
+</body>
+
+</html>

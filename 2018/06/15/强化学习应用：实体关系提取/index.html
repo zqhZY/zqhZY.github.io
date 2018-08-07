@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<!-- Head tag -->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+  <!--Description-->
+  
+
+  <!--Author-->
+  
+  <meta name="author" content="Zico">
+  
+
+  <!--Open Graph Title-->
+  
+      <meta property="og:title" content="强化学习应用：实体关系提取"/>
+  
+  <!--Open Graph Description-->
+  
+  <!--Open Graph Site Name-->
+  <meta property="og:site_name" content="A Note"/>
+  <!--Type page-->
+  
+      <meta property="og:type" content="article" />
+  
+  <!--Page Cover-->
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <!-- Title -->
+  
+  <title>强化学习应用：实体关系提取 - A Note</title>
+
+
+  <link rel="shortcut icon" href="https://hexo.io/icon/favicon-96x96.png">
+
+  <!-- Custom CSS/Sass -->
+  <link rel="stylesheet" href="/css/style.css">
+
+  <!----------------------------
+  https://github.com/GallenHu/hexo-theme-Daily
+
+ _____            _   _
+|  __ \          (_) | |
+| |  | |   __ _   _  | |  _   _
+| |  | |  / _` | | | | | | | | |
+| |__| | | (_| | | | | | | |_| |
+|_____/   \__,_| |_| |_|  \__, |
+                          __/ |
+                         |___/
+
+    --------------------------->
+
+</head>
+
+
+<body>
+
+  <!-- Nav -->
+  <header class="site-header">
+  <div class="header-inside">
+    <div class="logo">
+      <a href="/" rel="home">
+        
+        <img src="https://hexo.io/logo.svg" alt="A Note" height="60">
+        
+      </a>
+    </div>
+    <!-- Navigation -->
+    <nav class="navbar">
+      <!-- Collect the nav links, forms, and other content for toggling -->
+      <div class="collapse">
+        <ul class="navbar-nav">
+          
+          
+            <li>
+              <a href="/.">
+                
+                  Home
+                
+              </a>
+            </li>
+          
+            <li>
+              <a href="/archives">
+                
+                  Archive
+                
+              </a>
+            </li>
+          
+        </ul>
+      </div>
+      <!-- /.navbar-collapse -->
+    </nav>
+    <div class="button-wrap">
+      <button class="menu-toggle">Primary Menu</button>
+    </div>
+  </div>
+</header>
+
+
+  <!-- Main Content -->
+  <div class="content-area">
+  <div class="post">
+    <!-- Post Content -->
+    <div class="container">
+      <article>
+        <!-- Title date & tags -->
+        <div class="post-header">
+          <h1 class="entry-title">
+            强化学习应用：实体关系提取
+            
+          </h1>
+          <p class="posted-on">
+          2018-06-15
+          </p>
+          <div class="tags-links">
+            
+              
+                <a href="/tags/DNN/" rel="tag">
+                  DNN
+                </a>
+              
+                <a href="/tags/RL/" rel="tag">
+                  RL
+                </a>
+              
+                <a href="/tags/关系提取/" rel="tag">
+                  关系提取
+                </a>
+              
+            
+          </div>
+        </div>
+        <!-- Post Main Content -->
+        <div class="entry-content has_line_number">
+          <p>之前调研过几天的nlp的关系提取任务，任务可以简单描述为给定一个一句话，包含两个或多个实体，希望输出两个或多个实体之间的关系。前些日子读到一篇利用强化学习解决相应问题的论文，很有意思，打算简单梳理一下其动机和方法。附上论文链接：<a href="https://www.microsoft.com/en-us/research/publication/reinforcement-learning-relation-classification-noisy-data/" target="_blank" rel="noopener">Reinforcement Learning for Relation Classification from Noisy Data</a>。<br><a id="more"></a></p>
+<h3 id="经典关系提取方法："><a href="#经典关系提取方法：" class="headerlink" title="经典关系提取方法："></a>经典关系提取方法：</h3><p>远程监督的方法做关系提取被证明十分有效，大致思路是使用现有的实体关系（可以是现有的知识图谱中的实体关系）对预料库进行自动标注，然后作为训练语料。比如，图谱中“北京”和“中国”存在的是”首都”关系，则对于出现“北京”和“中国”的句子就打上“首都”的标签，如：（北京，首都，中国），然后作为分类任务做监督学习。</p>
+<p>这种方法期望利用现在成熟的文本分类方法解决关系提取，但也伴随这一个明显的问题，两个实体不止一个关系，并且包含两个实体的句子也不一定表达了两者有某种关系。而这些bad case同样也会被作为训练语料，从而影响最后的模型效果。</p>
+<p>一种有效的解决方法（multi-instance）是将远程标注的数据分成多个bag,每个bag中包含多个instance，可以理解为句子。我们只有bag级别的标签label，而不知道bag级别中的标签。数据的训练同样也是bag级别的。如此缓解了错误标注的问题，基本算法流程：</p>
+<ul>
+<li>初始化参数，划分bags为mini-batch</li>
+<li>随即选择mini-batch,一个个将batch中的bag送入网络</li>
+<li>每个bag中，取网络输出置信度最高的instance做最终使用的样本，多个bag选中的样本交叉熵做目标函数，更新参数。</li>
+<li>重复2、3步直到收敛或达到最大epoch数。</li>
+</ul>
+<p>multi-instance方法一定程度上缓解了错误标注的问题，但仍无法避免bag中数据全不标注错误的情况，由此，论文提出了强化学习思路来解决远程监督中错误标注的问题，并且解决训练样本粒度的问题，实现了句子级别的训练与预测。</p>
+<h3 id="RL-实体关系分类"><a href="#RL-实体关系分类" class="headerlink" title="RL 实体关系分类"></a>RL 实体关系分类</h3><p>系统分为两大部分：</p>
+<ul>
+<li>实例选择器（instance selection）： 给定一个远程标注的有噪音的数据集合：&lt;句子，关系标签&gt; ，选择哪一个句子真正表述了该关系标签，并作为最终的训练数据。</li>
+<li>关系分类器（relation classification）： 给定一个句子和其中的实体对，预测实体对的关系。</li>
+</ul>
+<p><img src="https://upload-images.jianshu.io/upload_images/2159902-69d1f80b598a28f6.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="引用自论文"></p>
+<h4 id="instance-selection"><a href="#instance-selection" class="headerlink" title="instance selection"></a>instance selection</h4><p>agent 在当前状态下（当前待选择的句子，已经选择的句子，当前实体对）遵循当前策略做出action决定是否选择当前的句子做训练语料，并在所有选择结束后从关系分类器获得获得相应奖励。具体做法：将训练句子划分正N个bag，当一个bag里的句子被选择完毕，计算一次reward。从强化学习的关键部分来描述：</p>
+<h5 id="policy"><a href="#policy" class="headerlink" title="policy:"></a>policy:</h5><p>是否选择当前的句子。</p>
+<h5 id="state"><a href="#state" class="headerlink" title="state:"></a>state:</h5><p>一个实数向量F(s_i)， F为一个映射函数，可以为一个神经网络：<br>状态s_i为：</p>
+<ul>
+<li>分类器（论文中使用cnn模型）的非线性层输出的当前句子的向量表示。</li>
+<li>已经选择的句子的向量表示的平均。</li>
+<li>句子两个实体的预训练向量（TransE方法在知识图谱中获得）<h5 id="action："><a href="#action：" class="headerlink" title="action："></a>action：</h5>一个逻辑回归函数，当前策略下是否选择当前句子的概率，参数为W和b。<br><img src="https://upload-images.jianshu.io/upload_images/2159902-319fdd4f2308fc18.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></li>
+</ul>
+<h5 id="reward"><a href="#reward" class="headerlink" title="reward:"></a>reward:</h5><p><img src="https://upload-images.jianshu.io/upload_images/2159902-245e7f62a9ffe1a9.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<p>一个bag选择完毕，计算延迟奖励，被选择的句子的log概率取平均。</p>
+<h5 id="策略优化："><a href="#策略优化：" class="headerlink" title="策略优化："></a>策略优化：</h5><p>蒙特卡洛采样方式的策略梯度下降方法：<br><img src="https://upload-images.jianshu.io/upload_images/2159902-ab93a168b0d85c4a.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"><br>其中v_i为bag_i的期望回报。</p>
+<h4 id="relation-classification"><a href="#relation-classification" class="headerlink" title="relation classification"></a>relation classification</h4><p>关系分类使用了比较经典的CNN文本分类模型，类别为所有的关系类型。</p>
+<h4 id="训练过程："><a href="#训练过程：" class="headerlink" title="训练过程："></a>训练过程：</h4><p>训练过程为简单的强化学习策略梯度下降方法：<br><img src="https://upload-images.jianshu.io/upload_images/2159902-f1b2c889b8733f31.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<h3 id="小结："><a href="#小结：" class="headerlink" title="小结："></a>小结：</h3><p>论文的主要工作是利用RL来处理远程监督的噪声问题：</p>
+<ul>
+<li>弱监督信号（关系分类器的预测置信度）和 trail-and-error search迎合了RL的特点和使用场景；</li>
+<li>除了关系分类，类似方法也可以用在其他远程监督带来的噪声问题。</li>
+<li>更新instance selector的reward信号是否可以尝试即时回报或者TD方式。</li>
+</ul>
+<p><a href="">原创文章，转载注明出处</a>。<br>更多关注公众号：<br><img src="https://upload-images.jianshu.io/upload_images/2159902-e28220521b7ef499.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="wechat"></p>
+
+        </div>
+      </article>
+    </div>
+    <!-- Comments -->
+    <div class="container">
+      
+<section id="comment">
+  <!-- <h1 class="title">留言</h1> -->
+
+  
+</section>
+
+
+    </div>
+    <!-- Pre or Next -->
+    <div class="nav-links">
+      
+      
+        <div class="nav-next">
+          <a href="/2018/05/30/强化学习-二-：Policy-Gradient/" rel="prev">下一页 <span class="meta-arraw meta-arraw-right"></span></a>
+        </div>
+      
+    </div>
+
+  </div>
+</div>
+
+
+  <!-- Footer -->
+  <!-- Footer-widgets -->
+<div class="footer-widgets">
+  <div class="row inside-wrapper">
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">关于本站</h1>
+        <div class="custom-widget-content">
+          
+          <p align="left">分享日常学习，传播核心价值观，传播正能量。</p>
+        </div>
+      </aside>
+    </div>
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">与我联系</h1>
+        <div class="widget-text">
+          
+            
+              <a href="https://github.com/zqhZY" class="icon icon-github" target="_blank">github</a>
+            
+              <a href="zqingheng@163.com" class="icon icon-mail" target="_blank">mail</a>
+            
+          
+        </div>
+      </aside>
+    </div>
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">站内搜索</h1>
+        <div class="widget-text">
+          <form onSubmit="return appDaily.submitSearch('')">
+            <p>
+              <input type="text" placeholder="search..." id="homeSearchInput">
+            </p>
+            <!-- <input type="submit" value="GO"> -->
+          </form>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+<!-- Footer -->
+<footer class="site-info">
+  <p>
+    <span>A Note &copy; 2018</span>
+    
+      <span class="split">|</span>
+      <span>Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> with Theme <a href="https://github.com/GallenHu/hexo-theme-Daily" target="_blank">Daily</a></span>
+    
+  </p>
+</footer>
+
+
+  <!-- After footer scripts -->
+  <!-- scripts -->
+<script src="/js/app.js"></script>
+
+
+
+
+
+</body>
+
+</html>

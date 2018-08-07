@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<!-- Head tag -->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+  <!--Description-->
+  
+
+  <!--Author-->
+  
+  <meta name="author" content="Zico">
+  
+
+  <!--Open Graph Title-->
+  
+      <meta property="og:title" content="A Note"/>
+  
+  <!--Open Graph Description-->
+  
+  <!--Open Graph Site Name-->
+  <meta property="og:site_name" content="A Note"/>
+  <!--Type page-->
+  
+      <meta property="og:type" content="website" />
+  
+  <!--Page Cover-->
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <!-- Title -->
+  
+  <title>A Note - 分享与传播</title>
+
+
+  <link rel="shortcut icon" href="https://hexo.io/icon/favicon-96x96.png">
+
+  <!-- Custom CSS/Sass -->
+  <link rel="stylesheet" href="/css/style.css">
+
+  <!----------------------------
+  https://github.com/GallenHu/hexo-theme-Daily
+
+ _____            _   _
+|  __ \          (_) | |
+| |  | |   __ _   _  | |  _   _
+| |  | |  / _` | | | | | | | | |
+| |__| | | (_| | | | | | | |_| |
+|_____/   \__,_| |_| |_|  \__, |
+                          __/ |
+                         |___/
+
+    --------------------------->
+
+</head>
+
+
+<body>
+
+  <!-- Nav -->
+  <header class="site-header">
+  <div class="header-inside">
+    <div class="logo">
+      <a href="/" rel="home">
+        
+        <img src="https://hexo.io/logo.svg" alt="A Note" height="60">
+        
+      </a>
+    </div>
+    <!-- Navigation -->
+    <nav class="navbar">
+      <!-- Collect the nav links, forms, and other content for toggling -->
+      <div class="collapse">
+        <ul class="navbar-nav">
+          
+          
+            <li>
+              <a href="/.">
+                
+                  Home
+                
+              </a>
+            </li>
+          
+            <li>
+              <a href="/archives">
+                
+                  Archive
+                
+              </a>
+            </li>
+          
+        </ul>
+      </div>
+      <!-- /.navbar-collapse -->
+    </nav>
+    <div class="button-wrap">
+      <button class="menu-toggle">Primary Menu</button>
+    </div>
+  </div>
+</header>
+
+
+  <!-- Main Content -->
+  <div class="site-content home">
+  <main class="content-area">
+    
+      
+        <div class="even">
+          
+
+<!-- 首页模板 -->
+<div class="container">
+  <article class="post">
+    
+    <h1 class="entry-title">
+      <a href="/2016/11/20/Docker构建Flink集群/" rel="bookmark">
+        Docker构建Flink集群
+      </a>
+    </h1>
+    
+    <div class="entry-content">
+      <p>
+        <p>Docker是在硬件资源不富裕的的情况下获得集群体验的一个非常不错的方式，本篇文章实现通过docker-compose编排Flink 高可用（HA）模式集群。集群构建两个JobManager和N个TaskManager，JobManager启动后向Zookeeper注册信息，并选举出leader，JobManager的数据备份保存在HDFS上；TaskManager从ZooKeeper上获取leader JobManager并发起注册请求。</p>
+      </p>
+    </div>
+    
+
+    <p class="posted-on">
+    2016-11-20
+    </p>
+    <div class="tags-links">
+      
+      <a href="/tags/Flink/" rel="tag">
+        Flink
+      </a>
+      
+      <a href="/tags/分布式/" rel="tag">
+        分布式
+      </a>
+      
+      <a href="/tags/docker/" rel="tag">
+        docker
+      </a>
+      
+    </div>
+  </article>
+</div>
+        </div> 
+      
+    
+      
+        <div class="odd">
+          
+
+<!-- 首页模板 -->
+<div class="container">
+  <article class="post">
+    
+      
+      
+
+      <a href="/2016/11/08/Flink源码（二）：TaskManager服务发现/">
+          <img src="https://upload-images.jianshu.io/upload_images/2159902-e76b6ab7219a7187.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="Flink源码（二）：TaskManager服务发现" class="attachment-post-thumbnail">
+        </a>
+    
+    <h1 class="entry-title">
+      <a href="/2016/11/08/Flink源码（二）：TaskManager服务发现/" rel="bookmark">
+        Flink源码（二）：TaskManager服务发现
+      </a>
+    </h1>
+    
+    <div class="entry-content">
+      <p>
+        <p>Flink的另一个重要组件TaskManager的创建和JobManager的ActorSystem的创建过程类似，不再详细分析。这里以TaskManager的创建到取得与JobManager的联系的过程为主线，重点分析Flink的服务发现的设计方法。</p>
+      </p>
+    </div>
+    
+
+    <p class="posted-on">
+    2016-11-08
+    </p>
+    <div class="tags-links">
+      
+      <a href="/tags/Flink/" rel="tag">
+        Flink
+      </a>
+      
+      <a href="/tags/分布式/" rel="tag">
+        分布式
+      </a>
+      
+    </div>
+  </article>
+</div>
+        </div>
+      
+    
+      
+        <div class="even">
+          
+
+<!-- 首页模板 -->
+<div class="container">
+  <article class="post">
+    
+      
+      
+
+      <a href="/2016/11/01/Flink源码-一-：Actor系统创建流程1/">
+          <img src="https://upload-images.jianshu.io/upload_images/2159902-e76b6ab7219a7187.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="Flink源码(一)：Actor系统创建流程1" class="attachment-post-thumbnail">
+        </a>
+    
+    <h1 class="entry-title">
+      <a href="/2016/11/01/Flink源码-一-：Actor系统创建流程1/" rel="bookmark">
+        Flink源码(一)：Actor系统创建流程1
+      </a>
+    </h1>
+    
+    <div class="entry-content">
+      <p>
+        <p>利用碎片时间阅读了一下Flink的源码，选择Flink主要出发点还是了解一个稳定的分布式计算系统的实现，另外也是由于Flink相对更加成熟的Spark有其独到的优势，相信其在下一代分布式计算中也会占有重要的地位。Flink的主要概念可以在<a href="https://ci.apache.org/projects/flink/flink-docs-release-1.1/concepts/concepts.html" target="_blank" rel="noopener">官网</a>了解<br>
+      </p>
+    </div>
+    
+
+    <p class="posted-on">
+    2016-11-01
+    </p>
+    <div class="tags-links">
+      
+      <a href="/tags/Flink/" rel="tag">
+        Flink
+      </a>
+      
+      <a href="/tags/分布式/" rel="tag">
+        分布式
+      </a>
+      
+    </div>
+  </article>
+</div>
+        </div> 
+      
+    
+
+    
+<div class="container" >
+  <ul class="pager">
+    
+      <li class="previous">
+        <a href="/page/4/">
+          下一页 <span class="meta-arraw meta-arraw-right"></span>
+        </a>
+      </li>
+    
+    
+  </ul>
+</div>
+
+
+  </main>
+</div>
+
+  <!-- Footer -->
+  <!-- Footer-widgets -->
+<div class="footer-widgets">
+  <div class="row inside-wrapper">
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">关于本站</h1>
+        <div class="custom-widget-content">
+          
+          <p align="left">分享日常学习，传播核心价值观，传播正能量。</p>
+        </div>
+      </aside>
+    </div>
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">与我联系</h1>
+        <div class="widget-text">
+          
+            
+              <a href="https://github.com/zqhZY" class="icon icon-github" target="_blank">github</a>
+            
+              <a href="zqingheng@163.com" class="icon icon-mail" target="_blank">mail</a>
+            
+          
+        </div>
+      </aside>
+    </div>
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">站内搜索</h1>
+        <div class="widget-text">
+          <form onSubmit="return appDaily.submitSearch('')">
+            <p>
+              <input type="text" placeholder="search..." id="homeSearchInput">
+            </p>
+            <!-- <input type="submit" value="GO"> -->
+          </form>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+<!-- Footer -->
+<footer class="site-info">
+  <p>
+    <span>A Note &copy; 2018</span>
+    
+      <span class="split">|</span>
+      <span>Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> with Theme <a href="https://github.com/GallenHu/hexo-theme-Daily" target="_blank">Daily</a></span>
+    
+  </p>
+</footer>
+
+
+  <!-- After footer scripts -->
+  <!-- scripts -->
+<script src="/js/app.js"></script>
+
+
+
+
+
+</body>
+
+</html>

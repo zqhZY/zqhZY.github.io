@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<!-- Head tag -->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+  <!--Description-->
+  
+
+  <!--Author-->
+  
+  <meta name="author" content="Zico">
+  
+
+  <!--Open Graph Title-->
+  
+      <meta property="og:title" content="Kaldi命令词识别"/>
+  
+  <!--Open Graph Description-->
+  
+  <!--Open Graph Site Name-->
+  <meta property="og:site_name" content="A Note"/>
+  <!--Type page-->
+  
+      <meta property="og:type" content="article" />
+  
+  <!--Page Cover-->
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <!-- Title -->
+  
+  <title>Kaldi命令词识别 - A Note</title>
+
+
+  <link rel="shortcut icon" href="https://hexo.io/icon/favicon-96x96.png">
+
+  <!-- Custom CSS/Sass -->
+  <link rel="stylesheet" href="/css/style.css">
+
+  <!----------------------------
+  https://github.com/GallenHu/hexo-theme-Daily
+
+ _____            _   _
+|  __ \          (_) | |
+| |  | |   __ _   _  | |  _   _
+| |  | |  / _` | | | | | | | | |
+| |__| | | (_| | | | | | | |_| |
+|_____/   \__,_| |_| |_|  \__, |
+                          __/ |
+                         |___/
+
+    --------------------------->
+
+</head>
+
+
+<body>
+
+  <!-- Nav -->
+  <header class="site-header">
+  <div class="header-inside">
+    <div class="logo">
+      <a href="/" rel="home">
+        
+        <img src="https://hexo.io/logo.svg" alt="A Note" height="60">
+        
+      </a>
+    </div>
+    <!-- Navigation -->
+    <nav class="navbar">
+      <!-- Collect the nav links, forms, and other content for toggling -->
+      <div class="collapse">
+        <ul class="navbar-nav">
+          
+          
+            <li>
+              <a href="/.">
+                
+                  Home
+                
+              </a>
+            </li>
+          
+            <li>
+              <a href="/archives">
+                
+                  Archive
+                
+              </a>
+            </li>
+          
+        </ul>
+      </div>
+      <!-- /.navbar-collapse -->
+    </nav>
+    <div class="button-wrap">
+      <button class="menu-toggle">Primary Menu</button>
+    </div>
+  </div>
+</header>
+
+
+  <!-- Main Content -->
+  <div class="content-area">
+  <div class="post">
+    <!-- Post Content -->
+    <div class="container">
+      <article>
+        <!-- Title date & tags -->
+        <div class="post-header">
+          <h1 class="entry-title">
+            Kaldi命令词识别
+            
+          </h1>
+          <p class="posted-on">
+          2017-03-01
+          </p>
+          <div class="tags-links">
+            
+              
+                <a href="/tags/ASR/" rel="tag">
+                  ASR
+                </a>
+              
+                <a href="/tags/kaldi/" rel="tag">
+                  kaldi
+                </a>
+              
+            
+          </div>
+        </div>
+        <!-- Post Main Content -->
+        <div class="entry-content has_line_number">
+          <p><img src="http://upload-images.jianshu.io/upload_images/2159902-66f4f1ee2564e861.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="kaldi"><br>刚刚拿到一个简单语料库练手，发现只有语音和对应文字， 这篇文章记录了从数据预处理到kaldi对数据进行训练和测试的全过程，这里首先训练单音节模型，其他模型后面再补充。<br><a id="more"></a></p>
+<h3 id="语料库处理"><a href="#语料库处理" class="headerlink" title="语料库处理"></a>语料库处理</h3><h4 id="task-0-观察语料库"><a href="#task-0-观察语料库" class="headerlink" title="task 0: 观察语料库"></a>task 0: 观察语料库</h4><p> 语料库主要用于命令词识别，包括200个词汇，2000条语音，10个说话者分别对200个词汇进行录音。语音目录以说话者id标识：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">$ tree -d</span><br><span class="line">├── speaker001</span><br><span class="line">├── speaker002</span><br><span class="line">├── speaker003</span><br><span class="line">├── speaker004</span><br><span class="line">├── speaker005</span><br><span class="line">├── speaker006</span><br><span class="line">├── speaker007</span><br><span class="line">├── speaker008</span><br><span class="line">├── speaker009</span><br><span class="line">├── speaker010</span><br><span class="line">└── Levoice.list</span><br></pre></td></tr></table></figure></p>
+<p>每个说话者文件夹目录下包含对应的200条语音：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">└┤ tree speaker001</span><br><span class="line">speaker001</span><br><span class="line">├── 00001.wav</span><br><span class="line">├── 00002.wav</span><br><span class="line">├── 00003.wav</span><br><span class="line">...</span><br><span class="line">└── 00200.wav</span><br></pre></td></tr></table></figure></p>
+<p>语音文字说明文件Levoice.list 格式为&lt;语音id&gt; &lt;文字&gt; &lt;录音时长&gt;，例如：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">└┤ head -n 2 Levoice.list </span><br><span class="line">speaker001/00001.wav	三六零通讯录	5.6</span><br><span class="line">speaker001/00002.wav	三六五日历	2.8</span><br></pre></td></tr></table></figure></p>
+<p> 语料库所给的资源应用到kaldi还需要汉字发音词典，这里只能自己准备，下面会参考thchs30语料库的词典准备自己的词典。</p>
+<h4 id="task-1-预处理语料库"><a href="#task-1-预处理语料库" class="headerlink" title="task 1: 预处理语料库"></a>task 1: 预处理语料库</h4><p>为方便后续操作，需要对语料库文件进行预处理，这部分包括：</p>
+<ul>
+<li>重新重命名语音文件，使2000个语音文件具有唯一标识（speakerid_voiceid.wav）</li>
+<li>划分训练、测试、验证数据集</li>
+<li>根据Levoice.list生成utt2words.txt ，进行文件名对应汉字映射。</li>
+</ul>
+<p>上述过程脚本（注意rname命令在Ubuntu和Centos中有细微差别）:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br></pre></td><td class="code"><pre><span class="line"> !/bin/bash</span><br><span class="line"></span><br><span class="line">#if need cv or not</span><br><span class="line">needcv=true</span><br><span class="line"></span><br><span class="line"># rename wav files by add prefix by &quot;speaker&quot;</span><br><span class="line">start_path=`pwd`</span><br><span class="line">for dirname in $(ls | grep &quot;speaker&quot;)</span><br><span class="line">do</span><br><span class="line">    #get first filename</span><br><span class="line">    filename=$(ls $dirname | head -n 1)</span><br><span class="line">    if [[ $filename =~ &quot;speaker&quot; ]]; then</span><br><span class="line">        echo &quot;files in $dirname have already renamed, passing...&quot;</span><br><span class="line">    else</span><br><span class="line">        echo &quot;now rename flies with prefix speakers&quot;</span><br><span class="line">        echo $dirname</span><br><span class="line">        cd $dirname</span><br><span class="line">        #in centos rename</span><br><span class="line">        rename &quot;00&quot; $dirname&quot;_00&quot; &quot;00&quot;*</span><br><span class="line">        # ubuntu using follows</span><br><span class="line">        #rename &quot;s/00/$dirname&quot;&quot;_00/&quot; 00*</span><br><span class="line">        cd ..</span><br><span class="line">    fi</span><br><span class="line">done</span><br><span class="line"></span><br><span class="line"># devide file to train, cv and test</span><br><span class="line">cd $start_path</span><br><span class="line">rm -rf  test train cv  &amp;&amp; mkdir test train cv</span><br><span class="line"></span><br><span class="line">i=1</span><br><span class="line">for dirname in $(ls | grep &quot;speaker&quot;)</span><br><span class="line">do</span><br><span class="line">    if [ $i -lt 9 ];then</span><br><span class="line">        cp $dirname/* train</span><br><span class="line">    else</span><br><span class="line">        cp $dirname/* test</span><br><span class="line">    fi</span><br><span class="line">    let i=$i+1</span><br><span class="line"></span><br><span class="line">done</span><br><span class="line"></span><br><span class="line">function rand()&#123;</span><br><span class="line">    min=$1</span><br><span class="line">    max=$(($2-$min+1))</span><br><span class="line">    num=$(($RANDOM+1000000000))</span><br><span class="line">    echo $(($num%$max+$min))  </span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">count=0</span><br><span class="line">array=(&quot;0&quot; &quot;0&quot; &quot;0&quot; &quot;0&quot;)</span><br><span class="line">#ls -al train</span><br><span class="line">if [ needcv ]; then</span><br><span class="line">    for file in $(ls train | grep &quot;speak&quot;)</span><br><span class="line">    do</span><br><span class="line">        array[$count]=$file</span><br><span class="line">        let count=$count+1</span><br><span class="line">        if [ $count -eq 4 ];then</span><br><span class="line">            rnd=$(rand 0 3)</span><br><span class="line">            mv train/$&#123;array[$rnd]&#125; cv</span><br><span class="line">            #echo $&#123;array[$rnd]&#125;</span><br><span class="line">            let count=0</span><br><span class="line">        fi</span><br><span class="line">    done</span><br><span class="line">    echo &quot;cv files prepared over, examples number is $(ls cv | wc -l)&quot;</span><br><span class="line">fi</span><br><span class="line">echo &quot;train files number is $(ls train | wc -l)&quot;</span><br><span class="line">echo &quot;test files number is $(ls test | wc -l)&quot;</span><br></pre></td></tr></table></figure></p>
+<p> 语料库对训练集、验证集、测试集参考thchs30，这里将说话人9、10语音作为测试集，再从1-8语音集中的1600百条语音文件四条语音为组随机选择一条语音归入验证集，剩下的作为训练集。划分结果训练集、验证集、测试集比例6:2:2。</p>
+<p> 在语料库目录运行上脚本，会在该目录下产生trian、test和cv目录，这些目录及文件将被后面使用。</p>
+<p>最后直接将Levoice.list中的信息进行简单字符替换即可：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">speaker001/00001.wav	三六零通讯录	5.6</span><br><span class="line">----&gt;</span><br><span class="line">speaker001_00001.wav	三六零通讯录	5.6</span><br></pre></td></tr></table></figure></p>
+<p>可以在vi或其他编辑器中替换即可。</p>
+<h3 id="应用Kaldi"><a href="#应用Kaldi" class="headerlink" title="应用Kaldi"></a>应用Kaldi</h3><h4 id="task0-构建kaldi项目结构"><a href="#task0-构建kaldi项目结构" class="headerlink" title="task0 : 构建kaldi项目结构"></a>task0 : 构建kaldi项目结构</h4><p>参照其他项目，首先复制创建项目结构目录，配置文件以及项目需要使用的依赖工具，这里多参考thchs30部分结构。在egs 目录下建立/wakeup/s5作为项目目录，在该目录下准备以下文件：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">$ tree -L 1</span><br><span class="line">|-- cmd.sh // 运行配置目录</span><br><span class="line">|-- conf  // 配置文件目录</span><br><span class="line">|-- local //存放run.sh 中调用的脚本工具，需要自己编写</span><br><span class="line">|-- path.sh //Kaldi 工具和库目录添加到PATH</span><br><span class="line">|-- run.sh // top层脚本，运行该脚本训练数据和测试， 需要自己编写</span><br><span class="line">|-- steps // kaldi 脚本工具， 复制到工程目录下</span><br><span class="line">|-- tools // kaldi 脚本工具， 复制到工程目录下</span><br><span class="line">`-- utils // kaldi 脚本工具， 复制到工程目录下</span><br></pre></td></tr></table></figure></p>
+<p>这里cmd.sh里根据自己运行方式配置运行参数，这里配置成单机运行<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">export train_cmd=run.pl</span><br><span class="line">export decode_cmd=&quot;run.pl --mem 4G&quot;</span><br><span class="line">export mkgraph_cmd=&quot;run.pl --mem 8G&quot;</span><br></pre></td></tr></table></figure></p>
+<p> conf 目录包含一些配置文件，这里主要将系统采样频率与语料库的采样频率设置为一致：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">$ ls</span><br><span class="line">decode_dnn.config  fbank.conf  mfcc.conf</span><br><span class="line">$ more mfcc.conf </span><br><span class="line">--use-energy=false   # only non-default option.</span><br><span class="line">--sample-frequency=8000</span><br><span class="line">$ more decode_dnn.config </span><br><span class="line">beam=18.0 # beam for decoding.  Was 13.0 in the scripts.</span><br><span class="line">lattice_beam=10.0 # this has most effect on size of the lattices.</span><br><span class="line">$ more fbank.conf </span><br><span class="line">--sample-frequency=8000</span><br><span class="line">--num-mel-bins=40</span><br></pre></td></tr></table></figure></p>
+<h4 id="task1-准备训练文件"><a href="#task1-准备训练文件" class="headerlink" title="task1 : 准备训练文件"></a>task1 : 准备训练文件</h4><p>参照kaldi数据准备部分文档，该部分需要自己根据语料库分别就train，test，cross validation目录生成以下文件：</p>
+<ul>
+<li>text : &lt; uttid &gt; &lt; word &gt;</li>
+<li>wav.scp : &lt; uttid &gt; &lt; utter_file_path &gt;</li>
+<li>utt2spk : &lt; uttid &gt; &lt; speakid &gt;</li>
+<li>spk2utt : &lt; speakid &gt; &lt; uttid &gt; </li>
+<li>word.txt : 同 text  </li>
+</ul>
+<p>编写local/data_pre.sh脚本供run.sh调用（下面会涉及run.sh脚本的编写），传入参数运行目录以及语料库目录：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line">#!/bin/bash</span><br><span class="line"># 2017-3-23 by zqh </span><br><span class="line"></span><br><span class="line"># This file prepares files needed in kaldi</span><br><span class="line"># including text, wav.scp, utt2spk, spk2utt</span><br><span class="line"># output: </span><br><span class="line">#   data/train dir include infomation of train data</span><br><span class="line">#   data/test dir include infomation of test data</span><br><span class="line">#   data/cv dir include infomation of cross validation data</span><br><span class="line"></span><br><span class="line">run_dir=$1</span><br><span class="line">dataset_dir=$2</span><br><span class="line"></span><br><span class="line">cd $run_dir</span><br><span class="line">echo &quot;prepare data in data/&#123;train, test, cv&#125;&quot;</span><br><span class="line">mkdir -p data/&#123;train,test,cv&#125;</span><br><span class="line"></span><br><span class="line">#create text, wav.scp, utt2spk, spk2utt</span><br><span class="line">(</span><br><span class="line">i=0</span><br><span class="line">for dir in train cv test; do</span><br><span class="line">    echo &quot;clean dir data/$dir&quot;</span><br><span class="line">    cd $run_dir/data/$dir</span><br><span class="line">    rm -rf wav.scp utt2spk spk2utt word.txt text  </span><br><span class="line">    #phone.txt</span><br><span class="line">    for data in $(find $dataset_dir/$dir/*.wav | sort -u | xargs -i basename &#123;&#125; .wav);do</span><br><span class="line">        let i=$i+1</span><br><span class="line">        spkid=$(echo $data | awk -F&quot;_&quot; &apos;&#123;print &quot;&quot; $1&#125;&apos;)</span><br><span class="line">        uttid=$data</span><br><span class="line">        echo $uttid $dataset_dir/$dir/$data.wav &gt;&gt; wav.scp</span><br><span class="line">        echo $uttid $spkid &gt;&gt; utt2spk</span><br><span class="line">        # gen word.txt</span><br><span class="line">        echo $uttid $(cat $dataset_dir/utt2word.txt | grep $uttid | awk &apos;&#123;print &quot;&quot; $2&#125;&apos;) &gt;&gt; word.txt</span><br><span class="line">        # gen phone.txt TODO</span><br><span class="line">    done</span><br><span class="line">    cp word.txt text</span><br><span class="line">    sort wav.scp -o wav.scp</span><br><span class="line">    sort utt2spk -o utt2spk</span><br><span class="line">    sort text -o text</span><br><span class="line">    # sort phone.txt -o phone.txt</span><br><span class="line">done</span><br><span class="line">echo &quot;all file number is $i&quot;</span><br><span class="line">) || exit 1</span><br><span class="line"></span><br><span class="line">utils/utt2spk_to_spk2utt.pl data/train/utt2spk &gt; data/train/spk2utt</span><br><span class="line">utils/utt2spk_to_spk2utt.pl data/cv/utt2spk &gt; data/cv/spk2utt</span><br><span class="line">utils/utt2spk_to_spk2utt.pl data/test/utt2spk &gt; data/test/spk2utt</span><br></pre></td></tr></table></figure></p>
+<h4 id="task2-训练语言模型"><a href="#task2-训练语言模型" class="headerlink" title="task2 : 训练语言模型"></a>task2 : 训练语言模型</h4><p>由于这里仅仅需要对语料库中的200个命令词进行识别，大而全的汉语词典并不必要，这里需要根据自己的语料建立词典并且生成语言模型。</p>
+<h5 id="task-2-1-准备词典"><a href="#task-2-1-准备词典" class="headerlink" title="task 2.1 : 准备词典"></a>task 2.1 : 准备词典</h5><p>根据kaldi的要求，需要准备的词典包括以下文件(我这里和语料库放在同个目录下，后面kaldi从该目录下读取)：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">[username@hostname dict]$ pwd</span><br><span class="line">/home/username/dataset_wakeup/resource/dict</span><br><span class="line">[username@hostname dict]$ ls</span><br><span class="line">extra_questions.txt  lexiconp.txt  lexicon.txt  nonsilence_phones.txt  optional_silence.txt  silence_phones.txt</span><br></pre></td></tr></table></figure></p>
+<p>对上面文件简单说明：</p>
+<ul>
+<li>lexicon.txt： 词典，包括语料中涉及的词汇与发音，与单字及其发音。</li>
+<li>silence_phones.txt：静音标识，这里为sil。</li>
+<li>nonsilence_phones.txt : 非静音标识，与silence_phones.txt共同组成lexicon.txt中的发音。</li>
+<li>extra_questions.txt ： 包含重音音调标记，这里没有用到</li>
+<li>lexiconp.txt ： 如果一个词有不同发音,则会在不同行中出现多次。如果你想使用发音概率,你需要建立 exiconp.txt 而不是 lexicon.txt，这里未使用</li>
+</ul>
+<p>以上文件可以参考复制thchs30的resource资源，只要替换lexicon.txt为自己的字典，并且追加thchs30中lexicon.txt中所有的<strong><em>单字及其发音</em></strong>（简单awk命令即可）。此外该语料库仅仅提供了汉字无对应发音，需要自己参考thchs30中的词典准备，（心想只有200条，觉得手打的会很快，事实用了2-3个小时，心累，回头想可以写程序完成）。<br>lexicon.txt 文件内容大致为：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ more lexicon.txt </span><br><span class="line">SIL sil</span><br><span class="line">&lt;SPOKEN_NOISE&gt; sil</span><br><span class="line">三六零通讯录 s an1 l iu4 l ing2 t ong1 x vn4 l u4</span><br><span class="line">三六五日历 s an1 l iu4 uu u3 r iz4 l i4</span><br><span class="line">三D图库	s an1 d i4 t u2 k u4</span><br></pre></td></tr></table></figure></p>
+<h5 id="task-2-2-生成语言模型"><a href="#task-2-2-生成语言模型" class="headerlink" title="task 2.2: 生成语言模型"></a>task 2.2: 生成语言模型</h5><p>语言模型训练需要使用n-gram算法，借助sirlm工具可以简单实现，并进行语言模型生成：</p>
+<h6 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h6><ul>
+<li>下载sirlm安装包（<a href="http://www.speech.sri.com/projects/srilm/download.html" target="_blank" rel="noopener">官网下载</a>速慢，也可通过在github上找到相应资源下载），解压后进入最上层目录进行安装。</li>
+<li>export SRILM=<code>pwd</code></li>
+<li>make</li>
+<li>把$make_dir/bin/i686-m64/加入PATH以便使用其中脚本</li>
+</ul>
+<h6 id="生成语言模型"><a href="#生成语言模型" class="headerlink" title="生成语言模型"></a>生成语言模型</h6><p> 在语料库目录下创建lm_word文件夹（方便管理），复制上面的字典lexicon.txt，并删除前两行，保存为作为words.txt作语料输入文件进行n-gram语言模型生成（由于只是词汇识别设置n=1）：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ngram-count -order 1 -text words.txt -lm word.arpa</span><br></pre></td></tr></table></figure></p>
+<p>其他参数可以参考：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">-order  指定n-gram的n是多少,默认是3</span><br><span class="line">-text   提供输入的语料文件,统计该语料中的n-gram</span><br><span class="line">-lm     指定输出的lm文件</span><br><span class="line">-vocab  用来指定对哪些词进行n-gram统计</span><br><span class="line">-wbdiscount1 表示1gram Witten-Bell discounting </span><br><span class="line">Note:参数顺序无所谓</span><br></pre></td></tr></table></figure></p>
+<p>该命令生成arpa格式的语言模型文件，后面由kaldi的其他工具转换为FST格式使用。</p>
+<p>完成语言模型的生成后，对应的可以在run.sh脚本中利用该部分的语言模型，通过kaldi提供的工具构建语言模型的FST格式文件，这部分 主要创建了data/{dict,lang,graph}目录及相应文件，并在后面的构建解码图的过程中使用。run.sh脚本该部分代码：</p>
+<pre><code>#gen lang dir 
+(
+    echo &quot;create new dir data/dict,lang,graph&quot;
+    cd $run_path
+    mkdir -p data/{dict,lang,graph} &amp;&amp; \
+    cp $dataset//resource/dict/{extra_questions.txt,nonsilence_phones.txt,optional_silence.txt,silence_phones.txt} data/dict &amp;&amp; \
+    cat $dataset/resource/dict/lexicon.txt | \
+    grep -v &apos;&lt;s&gt;&apos; | grep -v &apos;&lt;/s&gt;&apos; | sort -u &gt; data/dict/lexicon.txt || exit 1;
+    utils/prepare_lang.sh --position_dependent_phones false data/dict &quot;&lt;SPOKEN_NOISE&gt;&quot; data/local/lang data/lang || exit 1;
+    gzip -c $dataset/King-ASR-M-005/lm_word/word.arpa &gt; data/graph/word.arpa.gz || exit 1;
+    utils/format_lm.sh data/lang data/graph/word.arpa.gz $dataset/King-ASR-M-005/lm_word/lexicon.txt data/graph/lang || exit 1;
+)
+</code></pre><p>这里主要包括utils/prepare_lang.sh 、 和utils/format_lm.sh 两个脚本的调用，不作具体分析。</p>
+<p>更多关注公众号：<br><img src="https://upload-images.jianshu.io/upload_images/2159902-e28220521b7ef499.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="wechat"></p>
+
+        </div>
+      </article>
+    </div>
+    <!-- Comments -->
+    <div class="container">
+      
+<section id="comment">
+  <!-- <h1 class="title">留言</h1> -->
+
+  
+</section>
+
+
+    </div>
+    <!-- Pre or Next -->
+    <div class="nav-links">
+      
+        <div class="nav-previous">
+          <a href="/2017/03/08/Kaldi命令词识别-续/" rel="prev"><span class="meta-arraw meta-arraw-left"></span> 上一页</a>
+        </div>
+      
+      
+        <div class="nav-next">
+          <a href="/2016/12/01/Docker-Swarm搭建Gitlab/" rel="prev">下一页 <span class="meta-arraw meta-arraw-right"></span></a>
+        </div>
+      
+    </div>
+
+  </div>
+</div>
+
+
+  <!-- Footer -->
+  <!-- Footer-widgets -->
+<div class="footer-widgets">
+  <div class="row inside-wrapper">
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">关于本站</h1>
+        <div class="custom-widget-content">
+          
+          <p align="left">分享日常学习，传播核心价值观，传播正能量。</p>
+        </div>
+      </aside>
+    </div>
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">与我联系</h1>
+        <div class="widget-text">
+          
+            
+              <a href="https://github.com/zqhZY" class="icon icon-github" target="_blank">github</a>
+            
+              <a href="zqingheng@163.com" class="icon icon-mail" target="_blank">mail</a>
+            
+          
+        </div>
+      </aside>
+    </div>
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">站内搜索</h1>
+        <div class="widget-text">
+          <form onSubmit="return appDaily.submitSearch('')">
+            <p>
+              <input type="text" placeholder="search..." id="homeSearchInput">
+            </p>
+            <!-- <input type="submit" value="GO"> -->
+          </form>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+<!-- Footer -->
+<footer class="site-info">
+  <p>
+    <span>A Note &copy; 2018</span>
+    
+      <span class="split">|</span>
+      <span>Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> with Theme <a href="https://github.com/GallenHu/hexo-theme-Daily" target="_blank">Daily</a></span>
+    
+  </p>
+</footer>
+
+
+  <!-- After footer scripts -->
+  <!-- scripts -->
+<script src="/js/app.js"></script>
+
+
+
+
+
+</body>
+
+</html>

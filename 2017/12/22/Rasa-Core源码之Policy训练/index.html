@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<!-- Head tag -->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+  <!--Description-->
+  
+
+  <!--Author-->
+  
+  <meta name="author" content="Zico">
+  
+
+  <!--Open Graph Title-->
+  
+      <meta property="og:title" content="Rasa Core源码之Policy训练"/>
+  
+  <!--Open Graph Description-->
+  
+  <!--Open Graph Site Name-->
+  <meta property="og:site_name" content="A Note"/>
+  <!--Type page-->
+  
+      <meta property="og:type" content="article" />
+  
+  <!--Page Cover-->
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <!-- Title -->
+  
+  <title>Rasa Core源码之Policy训练 - A Note</title>
+
+
+  <link rel="shortcut icon" href="https://hexo.io/icon/favicon-96x96.png">
+
+  <!-- Custom CSS/Sass -->
+  <link rel="stylesheet" href="/css/style.css">
+
+  <!----------------------------
+  https://github.com/GallenHu/hexo-theme-Daily
+
+ _____            _   _
+|  __ \          (_) | |
+| |  | |   __ _   _  | |  _   _
+| |  | |  / _` | | | | | | | | |
+| |__| | | (_| | | | | | | |_| |
+|_____/   \__,_| |_| |_|  \__, |
+                          __/ |
+                         |___/
+
+    --------------------------->
+
+</head>
+
+
+<body>
+
+  <!-- Nav -->
+  <header class="site-header">
+  <div class="header-inside">
+    <div class="logo">
+      <a href="/" rel="home">
+        
+        <img src="https://hexo.io/logo.svg" alt="A Note" height="60">
+        
+      </a>
+    </div>
+    <!-- Navigation -->
+    <nav class="navbar">
+      <!-- Collect the nav links, forms, and other content for toggling -->
+      <div class="collapse">
+        <ul class="navbar-nav">
+          
+          
+            <li>
+              <a href="/.">
+                
+                  Home
+                
+              </a>
+            </li>
+          
+            <li>
+              <a href="/archives">
+                
+                  Archive
+                
+              </a>
+            </li>
+          
+        </ul>
+      </div>
+      <!-- /.navbar-collapse -->
+    </nav>
+    <div class="button-wrap">
+      <button class="menu-toggle">Primary Menu</button>
+    </div>
+  </div>
+</header>
+
+
+  <!-- Main Content -->
+  <div class="content-area">
+  <div class="post">
+    <!-- Post Content -->
+    <div class="container">
+      <article>
+        <!-- Title date & tags -->
+        <div class="post-header">
+          <h1 class="entry-title">
+            Rasa Core源码之Policy训练
+            
+          </h1>
+          <p class="posted-on">
+          2017-12-22
+          </p>
+          <div class="tags-links">
+            
+              
+                <a href="/tags/NLP/" rel="tag">
+                  NLP
+                </a>
+              
+                <a href="/tags/chatbot/" rel="tag">
+                  chatbot
+                </a>
+              
+            
+          </div>
+        </div>
+        <!-- Post Main Content -->
+        <div class="entry-content has_line_number">
+          <p><img src="http://upload-images.jianshu.io/upload_images/2159902-5460aca1aba1bafe.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="context.png"></p>
+<p>上下文的联系与理解是对话系统中重要的一块，直接影响与机器人对话的体验。最近接触了RASA系列，包括自然语言理解的rasa nlu和对话管理的rasa core。简单方便的实现一个任务对话系统的同时，也好奇其内部实现使用的技术。花时间读了Rasa Core关于上下文理解部分的源码，后面有机会再把rasa对话系统的其他模块的实现也做一个源码的分析。<br><a id="more"></a><br> 文章分为以下几部分：</p>
+<ul>
+<li>Rasa Core的主要模块概念</li>
+<li>训练数据准备</li>
+<li>对话Policy模型训练和实现方法</li>
+</ul>
+<h4 id="主要概念"><a href="#主要概念" class="headerlink" title="主要概念"></a>主要概念</h4><p><img src="http://upload-images.jianshu.io/upload_images/2159902-938d2d6b7c98b31d.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="arch.png"></p>
+<p> 与对话系统的主要模块对应，如图 Rasa Core的实现也有相应的几个模块。从接受用户消息到机器人做出决策的流程大致如下：</p>
+<ul>
+<li>接受用户消息，送入Interpreter模块，识别并生成包含消息文本（text）、用户意图（intent）、和实体（entities）的字典。这里Interpreter对意图和实体的识别由上面提到的Rasa NLU实现，不是文章的主题，只要知道其功能即可。</li>
+<li>Tracker 是对对话状态进行追踪（state tracker）的对象，它接受并记录Interpreter识别的新消息。</li>
+<li>Policy接受当前的对话状态，选择响应哪一个Action。</li>
+<li>被选择的Action别记录在Tracker中，并返回响应给用户。</li>
+</ul>
+<p>上述流程是在Interpreter和Policy模型训练好的基础上对话系统的运行流程，下面主要针对Policy选择Action的模型训练部分的源码进行分析。该部分模型需要考虑历史对话对下一步响应进行决策，是整个对话系统的核心。</p>
+<h4 id="训练数据"><a href="#训练数据" class="headerlink" title="训练数据"></a>训练数据</h4><p>训练Policy之前需要准备两个数据文件：</p>
+<ul>
+<li>domain.yml : 包括对话系统所适用的领域，其中包括intents（意图集合）、slots（实体槽集合）、actions (机器人相应方式的集合)。</li>
+<li>story.md：训练数据集合，这里的训练数据比不是原始的对话数据，而是原始的对话在domain中的映射。<br>以官方的订餐馆的数据集为例：</li>
+</ul>
+<p>restaurant_domain.yml:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line">slots:</span><br><span class="line">  cuisine:</span><br><span class="line">    type: text</span><br><span class="line">  people:</span><br><span class="line">    type: text</span><br><span class="line">  location:</span><br><span class="line">    type: text</span><br><span class="line">  price:</span><br><span class="line">    type: text</span><br><span class="line">  info:</span><br><span class="line">    type: text</span><br><span class="line">  matches:</span><br><span class="line">    type: list</span><br><span class="line"></span><br><span class="line">intents:</span><br><span class="line"> - greet</span><br><span class="line"> - affirm</span><br><span class="line"> - deny</span><br><span class="line"> - inform</span><br><span class="line"> - thankyou</span><br><span class="line"> - request_info</span><br><span class="line"></span><br><span class="line">entities:</span><br><span class="line"> - location</span><br><span class="line"> - info</span><br><span class="line"> - people</span><br><span class="line"> - price</span><br><span class="line"> - cuisine</span><br><span class="line"></span><br><span class="line">templates:</span><br><span class="line">  utter_greet:</span><br><span class="line">    - &quot;hey there!&quot;</span><br><span class="line">  utter_goodbye:</span><br><span class="line">    - &quot;goodbye :(&quot;</span><br><span class="line">    - &quot;Bye-bye&quot;</span><br><span class="line">  utter_default:</span><br><span class="line">    - &quot;default message&quot;</span><br><span class="line">  utter_ack_dosearch: </span><br><span class="line">    - &quot;ok let me see what I can find&quot;</span><br><span class="line">...</span><br><span class="line">...</span><br><span class="line"></span><br><span class="line">actions:</span><br><span class="line">  - utter_greet</span><br><span class="line">  - utter_goodbye</span><br><span class="line">  - utter_default</span><br><span class="line">  - utter_ack_dosearch</span><br><span class="line">  - utter_ack_findalternatives</span><br><span class="line">...</span><br><span class="line">...</span><br></pre></td></tr></table></figure></p>
+<p>babi_stories.md：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">## story_03812903</span><br><span class="line">* greet # 用户打招呼</span><br><span class="line"> - utter_ask_howcanhelp # 机器人响应需要什么帮助</span><br><span class="line">* inform&#123;&quot;location&quot;: &quot;paris&quot;, &quot;people&quot;: &quot;six&quot;, &quot;price&quot;: &quot;cheap&quot;&#125; # 用户回复想订一下Paris便宜的六人桌</span><br><span class="line"> - utter_on_it # 机器人回复好的</span><br><span class="line"> - utter_ask_cuisine # 机器人继续询问要什么菜系</span><br><span class="line">* inform&#123;&quot;cuisine&quot;: &quot;indian&quot;&#125; # 用户说印度菜</span><br><span class="line"> - utter_ack_dosearch # 机器人回复稍等帮您查找</span><br><span class="line"> - action_search_restaurants # 机器人查库返回结果</span><br><span class="line">...</span><br><span class="line">... # 省略</span><br><span class="line">* affirm # 用户确认 </span><br><span class="line"> - utter_ack_makereservation # 机器人回复完成订单，询问手机号</span><br><span class="line">* request_info&#123;&quot;info&quot;: &quot;phone&quot;&#125; # 用户告知手机号</span><br><span class="line"> - action_suggest # 机器人其他推荐</span><br><span class="line">* thankyou # 用户感谢</span><br><span class="line"> - utter_ask_helpmore # 机器人询问其他帮助</span><br></pre></td></tr></table></figure></p>
+<p>story中对样例对话进行了简单的注释。</p>
+<h4 id="模型训练"><a href="#模型训练" class="headerlink" title="模型训练"></a>模型训练</h4><p> 准备好训练数据，下面是模型训练。拿官方的一个经典的KerasPolicy模型为例，该模型用Keras实现了一个简单的LSTM作为Policy模型：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">def model_architecture(self, num_features, num_actions, max_history_len):</span><br><span class="line">        &quot;&quot;&quot;Build a keras model and return a compiled model.</span><br><span class="line"></span><br><span class="line">        :param max_history_len: The maximum number of historical</span><br><span class="line">                                turns used to decide on next action</span><br><span class="line">        &quot;&quot;&quot;</span><br><span class="line">        from keras.layers import LSTM, Activation, Masking, Dense</span><br><span class="line">        from keras.models import Sequential</span><br><span class="line"></span><br><span class="line">        n_hidden = 32  # Neural Net and training params</span><br><span class="line">        batch_shape = (None, max_history_len, num_features)</span><br><span class="line">        # Build Model</span><br><span class="line">        model = Sequential()</span><br><span class="line">        model.add(Masking(-1, batch_input_shape=batch_shape))</span><br><span class="line">        model.add(LSTM(n_hidden, batch_input_shape=batch_shape, dropout=0.2))</span><br><span class="line">        model.add(Dense(input_dim=n_hidden, units=num_actions))</span><br><span class="line">        model.add(Activation(&apos;softmax&apos;))</span><br><span class="line"></span><br><span class="line">        model.compile(loss=&apos;categorical_crossentropy&apos;,</span><br><span class="line">                      optimizer=&apos;rmsprop&apos;,</span><br><span class="line">                      metrics=[&apos;accuracy&apos;])</span><br><span class="line"></span><br><span class="line">        logger.debug(model.summary())</span><br><span class="line">        return model</span><br></pre></td></tr></table></figure></p>
+<p>模型通过历史对话记录作为输入训练数据，下一个决策Action作为label，进行模型训练。三个参数：</p>
+<ul>
+<li>max_history_len： 记录的最大历史长度。</li>
+<li>num_features： 每个记录的特征维度（intent、slot、action等的数目），包括了该记录的状态。</li>
+<li>num_actions：候选响应数。</li>
+</ul>
+<p>模型本质上是num_actions个类别的多分类。下面详细分析对story.md的编码，生成可以直接输入到模型的训练数据（X，y）。</p>
+<h5 id="状态追踪（state-track）"><a href="#状态追踪（state-track）" class="headerlink" title="状态追踪（state track）"></a>状态追踪（state track）</h5><p>在搞清楚模型输入的训练数据是什么之前需要了解Rasa Core是如何实现状态追踪。训练阶段，rasa core读入Story，用track记录：在设置最大长度上下文为2时，一条训练数据的会有如下字典的表示：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[</span><br><span class="line">	&#123;&apos;entity_location&apos;: 1.0, &apos;entity_people&apos;: 1.0, &apos;entity_price&apos;: 1.0, &apos;slot_cuisine_0&apos;: 0.0, &apos;slot_info_0&apos;: 0.0, &apos;slot_location_0&apos;: 1.0, &apos;slot_matches_0&apos;: 0.0, &apos;slot_people_0&apos;: 1.0, &apos;slot_price_0&apos;: 1.0, &apos;intent_inform&apos;: 1.0, &apos;prev_utter_on_it&apos;: 1&#125;, </span><br><span class="line">	&#123;&apos;entity_location&apos;: 1.0, &apos;entity_people&apos;: 1.0, &apos;entity_price&apos;: 1.0, &apos;slot_cuisine_0&apos;: 0.0, &apos;slot_info_0&apos;: 0.0, &apos;slot_location_0&apos;: 1.0, &apos;slot_matches_0&apos;: 0.0, &apos;slot_people_0&apos;: 1.0, &apos;slot_price_0&apos;: 1.0, &apos;intent_inform&apos;: 1.0, &apos;prev_utter_ask_cuisine&apos;: 1&#125;, </span><br><span class="line">	&#123;&apos;entity_cuisine&apos;: 1.0, &apos;slot_cuisine_0&apos;: 1.0, &apos;slot_info_0&apos;: 0.0, &apos;slot_location_0&apos;: 1.0, &apos;slot_matches_0&apos;: 0.0, &apos;slot_people_0&apos;: 1.0, &apos;slot_price_0&apos;: 1.0, &apos;intent_inform&apos;: 1.0, &apos;prev_action_listen&apos;: 1&#125;</span><br><span class="line">]</span><br></pre></td></tr></table></figure></p>
+<p> 该部分状态对应上面训练数据的<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"> - utter_on_it # 机器人回复好的</span><br><span class="line"> - utter_ask_cuisine # 机器人继续询问要什么菜系</span><br><span class="line">* inform&#123;&quot;cuisine&quot;: &quot;indian&quot;&#125; # 用户说印度菜</span><br></pre></td></tr></table></figure></p>
+<h5 id="状态编码"><a href="#状态编码" class="headerlink" title="状态编码"></a>状态编码</h5><p>track列表中第一个字典表示utter_on_it后的状态，此时slot_location、slot_people、slot_price等的均已收集到在之前的对话中，对应value为1。第二个字典表示在utter_ask_cuisine后的状态，此时并没有获取到新的信息，而只是记录上一个机器响应prev_utter_ask_cuisine的value为1，表示该阶段状态；第三个字典表示当前状态，在获取新的cuisine信息后对应key的value置为1，同时上一个action为prev_action_listen表示监听。</p>
+<p>相应的，根据训练数据下一个机器应该采取的action为：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">- utter_ack_dosearch # 机器人回复稍等帮您查找</span><br></pre></td></tr></table></figure></p>
+<p>如此得到一条训练数据（x,y）, x经过编码，单条记录为一个二值向量，如果特征出现为1，否则为0，对应上面的第三个字典：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">&#123;&apos;entity_cuisine&apos;: 1.0, &apos;slot_cuisine_0&apos;: 1.0, &apos;slot_info_0&apos;: 0.0, &apos;slot_location_0&apos;: 1.0, &apos;slot_matches_0&apos;: 0.0, &apos;slot_people_0&apos;: 1.0, &apos;slot_price_0&apos;: 1.0, &apos;intent_inform&apos;: 1.0, &apos;prev_action_listen&apos;: 1&#125;</span><br><span class="line">[0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0,0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],</span><br></pre></td></tr></table></figure></p>
+<p>而对于最大历史信息记录为2的对应单条训练数据：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[array([[0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0,0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],</span><br><span class="line">[0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0,0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]], dtype=int32)]</span><br></pre></td></tr></table></figure></p>
+<p> 对应的y为5（utter_ack_dosearch的编号）。相同方法从Story中读取所有可能的数据对，去重和数据增强（打乱拼接），最终生成训练数据X，y。</p>
+<ul>
+<li>X的维度为：(num_states, max_history, num_features)</li>
+<li>y的维度为：num_states</li>
+</ul>
+<h5 id="模型训练-1"><a href="#模型训练-1" class="headerlink" title="模型训练"></a>模型训练</h5><p>在准备好训练数据之后就可以对LSTM进行训练：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">def train(self, X, y, domain, **kwargs):</span><br><span class="line">    self.model = self.model_architecture(domain.num_features,</span><br><span class="line">                                         domain.num_actions,</span><br><span class="line">                                         X.shape[1])</span><br><span class="line">    y_one_hot = np.zeros((len(y), domain.num_actions))</span><br><span class="line">    y_one_hot[np.arange(len(y)), y] = 1</span><br><span class="line"></span><br><span class="line">    number_of_samples = X.shape[0]</span><br><span class="line">    idx = np.arange(number_of_samples)</span><br><span class="line">    np.random.shuffle(idx)</span><br><span class="line">    shuffled_X = X[idx, :, :]</span><br><span class="line">    shuffled_y = y_one_hot[idx, :]</span><br><span class="line"></span><br><span class="line">    validation_split = kwargs.get(&quot;validation_split&quot;, 0.0)</span><br><span class="line">    logger.info(&quot;Fitting model with &#123;&#125; total samples and a validation &quot;</span><br><span class="line">                &quot;split of &#123;&#125;&quot;.format(number_of_samples, validation_split))</span><br><span class="line">    self.model.fit(shuffled_X, shuffled_y, **kwargs)</span><br><span class="line">    self.current_epoch = kwargs.get(&quot;epochs&quot;, 10)</span><br><span class="line">    logger.info(&quot;Done fitting keras policy model&quot;)</span><br></pre></td></tr></table></figure></p>
+<p>和一般LSTM网络的训练方法一样，这里先对y进行one hot编码，shuffle训练集，之后进行训练。对于单个训练数据，对比文本的训练，一个状态相当于一个词，而最大上下文长度为2的单条训练数据可类比为2个词的句子。</p>
+<p>而在模型实用的预测阶段，一开始流程也有涉及，显然只要Tracker记录之前的聊天记录，每次拿当前决策的前两个消息作为模型输入，输出即为每个action的概率值，选择最大的响应即可。</p>
+<h4 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h4><p>到此分析了Rasa Core的Policy训练方式，虽然Rasa Core的代码量并不算大，但这里并没有根据源码细节来看，而只是理清其训练方法。通过一个不错的对话系统的源码阅读，可以对对话管理的几个关键技术有进一步的理解，比如状态追踪、上下文理解以及没有讲的意图识别和实体识别。<br> 相比于高大上的论文的解决方案（如端到端、Memory Network进行上下文理解），Rasa Core显得更加简单可用，同样Rasa Core支持online learning还有点增强学习的意思，感兴趣的可以关注其github。</p>
+<p> <a href="">原创文章转载注明出处</a><br>更多关注公众号：<br><img src="https://upload-images.jianshu.io/upload_images/2159902-e28220521b7ef499.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="wechat"></p>
+
+        </div>
+      </article>
+    </div>
+    <!-- Comments -->
+    <div class="container">
+      
+<section id="comment">
+  <!-- <h1 class="title">留言</h1> -->
+
+  
+</section>
+
+
+    </div>
+    <!-- Pre or Next -->
+    <div class="nav-links">
+      
+        <div class="nav-previous">
+          <a href="/2018/05/20/强化学习-一/" rel="prev"><span class="meta-arraw meta-arraw-left"></span> 上一页</a>
+        </div>
+      
+      
+        <div class="nav-next">
+          <a href="/2017/12/03/基于rasa的对话系统搭建（下）/" rel="prev">下一页 <span class="meta-arraw meta-arraw-right"></span></a>
+        </div>
+      
+    </div>
+
+  </div>
+</div>
+
+
+  <!-- Footer -->
+  <!-- Footer-widgets -->
+<div class="footer-widgets">
+  <div class="row inside-wrapper">
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">关于本站</h1>
+        <div class="custom-widget-content">
+          
+          <p align="left">分享日常学习，传播核心价值观，传播正能量。</p>
+        </div>
+      </aside>
+    </div>
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">与我联系</h1>
+        <div class="widget-text">
+          
+            
+              <a href="https://github.com/zqhZY" class="icon icon-github" target="_blank">github</a>
+            
+              <a href="zqingheng@163.com" class="icon icon-mail" target="_blank">mail</a>
+            
+          
+        </div>
+      </aside>
+    </div>
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">站内搜索</h1>
+        <div class="widget-text">
+          <form onSubmit="return appDaily.submitSearch('')">
+            <p>
+              <input type="text" placeholder="search..." id="homeSearchInput">
+            </p>
+            <!-- <input type="submit" value="GO"> -->
+          </form>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+<!-- Footer -->
+<footer class="site-info">
+  <p>
+    <span>A Note &copy; 2018</span>
+    
+      <span class="split">|</span>
+      <span>Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> with Theme <a href="https://github.com/GallenHu/hexo-theme-Daily" target="_blank">Daily</a></span>
+    
+  </p>
+</footer>
+
+
+  <!-- After footer scripts -->
+  <!-- scripts -->
+<script src="/js/app.js"></script>
+
+
+
+
+
+</body>
+
+</html>
