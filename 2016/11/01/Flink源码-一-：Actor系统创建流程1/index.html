@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<!-- Head tag -->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+  <!--Description-->
+  
+
+  <!--Author-->
+  
+  <meta name="author" content="Zico">
+  
+
+  <!--Open Graph Title-->
+  
+      <meta property="og:title" content="Flink源码(一)：Actor系统创建流程1"/>
+  
+  <!--Open Graph Description-->
+  
+  <!--Open Graph Site Name-->
+  <meta property="og:site_name" content="A Note"/>
+  <!--Type page-->
+  
+      <meta property="og:type" content="article" />
+  
+  <!--Page Cover-->
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <!-- Title -->
+  
+  <title>Flink源码(一)：Actor系统创建流程1 - A Note</title>
+
+
+  <link rel="shortcut icon" href="https://hexo.io/icon/favicon-96x96.png">
+
+  <!-- Custom CSS/Sass -->
+  <link rel="stylesheet" href="/css/style.css">
+
+  <!----------------------------
+  https://github.com/GallenHu/hexo-theme-Daily
+
+ _____            _   _
+|  __ \          (_) | |
+| |  | |   __ _   _  | |  _   _
+| |  | |  / _` | | | | | | | | |
+| |__| | | (_| | | | | | | |_| |
+|_____/   \__,_| |_| |_|  \__, |
+                          __/ |
+                         |___/
+
+    --------------------------->
+
+</head>
+
+
+<body>
+
+  <!-- Nav -->
+  <header class="site-header">
+  <div class="header-inside">
+    <div class="logo">
+      <a href="/" rel="home">
+        
+        <img src="https://hexo.io/logo.svg" alt="A Note" height="60">
+        
+      </a>
+    </div>
+    <!-- Navigation -->
+    <nav class="navbar">
+      <!-- Collect the nav links, forms, and other content for toggling -->
+      <div class="collapse">
+        <ul class="navbar-nav">
+          
+          
+            <li>
+              <a href="/.">
+                
+                  Home
+                
+              </a>
+            </li>
+          
+            <li>
+              <a href="/archives">
+                
+                  Archive
+                
+              </a>
+            </li>
+          
+        </ul>
+      </div>
+      <!-- /.navbar-collapse -->
+    </nav>
+    <div class="button-wrap">
+      <button class="menu-toggle">Primary Menu</button>
+    </div>
+  </div>
+</header>
+
+
+  <!-- Main Content -->
+  <div class="content-area">
+  <div class="post">
+    <!-- Post Content -->
+    <div class="container">
+      <article>
+        <!-- Title date & tags -->
+        <div class="post-header">
+          <h1 class="entry-title">
+            Flink源码(一)：Actor系统创建流程1
+            
+          </h1>
+          <p class="posted-on">
+          2016-11-01
+          </p>
+          <div class="tags-links">
+            
+              
+                <a href="/tags/Flink/" rel="tag">
+                  Flink
+                </a>
+              
+                <a href="/tags/分布式/" rel="tag">
+                  分布式
+                </a>
+              
+            
+          </div>
+        </div>
+        <!-- Post Main Content -->
+        <div class="entry-content has_line_number">
+          <p>利用碎片时间阅读了一下Flink的源码，选择Flink主要出发点还是了解一个稳定的分布式计算系统的实现，另外也是由于Flink相对更加成熟的Spark有其独到的优势，相信其在下一代分布式计算中也会占有重要的地位。Flink的主要概念可以在<a href="https://ci.apache.org/projects/flink/flink-docs-release-1.1/concepts/concepts.html" target="_blank" rel="noopener">官网</a>了解<br><a id="more"></a><br>Flink系统作业的提交和调度都是利用AKKA的Actor通信，因此也是由此作为切入点，首先理清整个系统的启动以及作业提交的流程和数据流。</p>
+<p><img src="http://upload-images.jianshu.io/upload_images/2159902-e76b6ab7219a7187.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="flink basic concepts"></p>
+<p>图中可以看到，一个完整的Flink系统由三个Actor System构成，包括Client、JobManager（JM）以及TaskManager（TM）。下面对三个Actor系统的创建进行分析。</p>
+<h4 id="JM-ActorSystem"><a href="#JM-ActorSystem" class="headerlink" title="JM ActorSystem"></a>JM ActorSystem</h4><p>JM是Flink系统的调度中心，这部分除了会看到JM ActorSystem的创建，还会了解到整个Flink系统的各个模块的初始化与运行。</p>
+<p>先找程序入口，从启动脚本可以追溯到，每一个启动脚本最终都会运行flink_deamon.sh 脚本，查看该脚本：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">...</span><br><span class="line">...</span><br><span class="line"></span><br><span class="line"><span class="keyword">case</span> <span class="variable">$DAEMON</span> <span class="keyword">in</span></span><br><span class="line">    (jobmanager)</span><br><span class="line">        CLASS_TO_RUN=org.apache.flink.runtime.jobmanager.JobManager</span><br><span class="line">    ;;</span><br><span class="line"></span><br><span class="line">    (taskmanager)</span><br><span class="line">        CLASS_TO_RUN=org.apache.flink.runtime.taskmanager.TaskManager</span><br><span class="line">    ;;</span><br><span class="line"></span><br><span class="line">    (zookeeper)</span><br><span class="line">        CLASS_TO_RUN=org.apache.flink.runtime.zookeeper.FlinkZooKeeperQuorumPeer</span><br><span class="line">    ;;</span><br><span class="line"></span><br><span class="line">    (*)</span><br><span class="line">        <span class="built_in">echo</span> <span class="string">"Unknown daemon '<span class="variable">$&#123;DAEMON&#125;</span>'. <span class="variable">$USAGE</span>."</span></span><br><span class="line">        <span class="built_in">exit</span> 1</span><br><span class="line">    ;;</span><br><span class="line"><span class="keyword">esac</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="variable">$JAVA_RUN</span> <span class="variable">$JVM_ARGS</span> <span class="variable">$&#123;FLINK_ENV_JAVA_OPTS&#125;</span> <span class="string">"<span class="variable">$&#123;log_setting[@]&#125;</span>"</span> -classpath <span class="string">"`manglePathList "</span><span class="variable">$FLINK_TM_CLASSPATH</span>:<span class="variable">$INTERNAL_HADOOP_CLASSPATHS</span><span class="string">"`"</span> <span class="variable">$&#123;CLASS_TO_RUN&#125;</span> <span class="string">"<span class="variable">$&#123;ARGS[@]&#125;</span>"</span> &gt; <span class="string">"<span class="variable">$out</span>"</span> 2&gt;&amp;1 &lt; /dev/null &amp;</span><br><span class="line">...</span><br><span class="line">...</span><br></pre></td></tr></table></figure></p>
+<p>由此找到JM的程序入口：org.apache.flink.runtime.jobmanager.JobManager.scala，代码中可以找到main函数，调用runJobManager方法：<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">runJobManager</span></span>(</span><br><span class="line">      configuration: <span class="type">Configuration</span>,</span><br><span class="line">      executionMode: <span class="type">JobManagerMode</span>,</span><br><span class="line">      listeningAddress: <span class="type">String</span>,</span><br><span class="line">      listeningPort: <span class="type">Int</span>)</span><br><span class="line">    : <span class="type">Unit</span> = &#123;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="comment">//startActorSystemAndJobManagerActors返回jobManagerSystem</span></span><br><span class="line">    <span class="keyword">val</span> (jobManagerSystem, _, _, webMonitorOption, _) = startActorSystemAndJobManagerActors(</span><br><span class="line">      configuration,</span><br><span class="line">      executionMode,</span><br><span class="line">      listeningAddress,</span><br><span class="line">      listeningPort,</span><br><span class="line">      classOf[<span class="type">JobManager</span>],</span><br><span class="line">      classOf[<span class="type">MemoryArchivist</span>],</span><br><span class="line">      <span class="type">Option</span>(classOf[<span class="type">StandaloneResourceManager</span>])</span><br><span class="line">    )</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 阻塞，直到系统退出</span></span><br><span class="line">    jobManagerSystem.awaitTermination()</span><br><span class="line"></span><br><span class="line">    webMonitorOption.foreach&#123;</span><br><span class="line">      webMonitor =&gt;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">          webMonitor.stop()</span><br><span class="line">        &#125; <span class="keyword">catch</span> &#123;</span><br><span class="line">          <span class="keyword">case</span> t: <span class="type">Throwable</span> =&gt;</span><br><span class="line">            <span class="type">LOG</span>.warn(<span class="string">"Could not properly stop the web monitor."</span>, t)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
+<p>runJobManager方法逻辑比较简单，调用startActorSystemAndJobManagerActors方法中创建ActorSystem和JMActor，然后阻塞等待系统退出，看具体的JM创建过程：<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">startActorSystemAndJobManagerActors</span></span>(</span><br><span class="line">      configuration: <span class="type">Configuration</span>,</span><br><span class="line">      executionMode: <span class="type">JobManagerMode</span>,</span><br><span class="line">      listeningAddress: <span class="type">String</span>,</span><br><span class="line">      listeningPort: <span class="type">Int</span>,</span><br><span class="line">      jobManagerClass: <span class="type">Class</span>[_ &lt;: <span class="type">JobManager</span>],</span><br><span class="line">      archiveClass: <span class="type">Class</span>[_ &lt;: <span class="type">MemoryArchivist</span>],</span><br><span class="line">      resourceManagerClass: <span class="type">Option</span>[<span class="type">Class</span>[_ &lt;: <span class="type">FlinkResourceManager</span>[_]]])</span><br><span class="line">    : (<span class="type">ActorSystem</span>, <span class="type">ActorRef</span>, <span class="type">ActorRef</span>, <span class="type">Option</span>[<span class="type">WebMonitor</span>], <span class="type">Option</span>[<span class="type">ActorRef</span>]) = &#123;</span><br><span class="line"></span><br><span class="line">    <span class="type">LOG</span>.info(<span class="string">"Starting JobManager"</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Bring up the job manager actor system first, bind it to the given address.</span></span><br><span class="line">    <span class="keyword">val</span> hostPortUrl = <span class="type">NetUtils</span>.hostAndPortToUrlString(listeningAddress, listeningPort)</span><br><span class="line">    <span class="type">LOG</span>.info(<span class="string">s"Starting JobManager actor system at <span class="subst">$hostPortUrl</span>"</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">val</span> jobManagerSystem = <span class="keyword">try</span> &#123;</span><br><span class="line">      <span class="keyword">val</span> akkaConfig = <span class="type">AkkaUtils</span>.getAkkaConfig(</span><br><span class="line">        configuration,</span><br><span class="line">        <span class="type">Some</span>((listeningAddress, listeningPort))</span><br><span class="line">      )</span><br><span class="line">      <span class="keyword">if</span> (<span class="type">LOG</span>.isDebugEnabled) &#123;</span><br><span class="line">        <span class="type">LOG</span>.debug(<span class="string">"Using akka configuration\n "</span> + akkaConfig)</span><br><span class="line">      &#125;</span><br><span class="line">      </span><br><span class="line">      <span class="type">AkkaUtils</span>.createActorSystem(akkaConfig)<span class="comment">//创建ActorSystem全局仅有一个</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">catch</span> &#123;</span><br><span class="line">	   ...</span><br><span class="line">	   ...</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">	...</span><br><span class="line">	...<span class="comment">//此处省略webMonitor的创建</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      <span class="comment">// bring up the job manager actor</span></span><br><span class="line">      <span class="type">LOG</span>.info(<span class="string">"Starting JobManager actor"</span>)</span><br><span class="line">      <span class="keyword">val</span> (jobManager, archive) = startJobManagerActors(</span><br><span class="line">        configuration,</span><br><span class="line">        jobManagerSystem,</span><br><span class="line">        jobManagerClass,</span><br><span class="line">        archiveClass)</span><br><span class="line"></span><br><span class="line">      <span class="comment">// start a process reaper that watches the JobManager. If the JobManager actor dies,</span></span><br><span class="line">      <span class="comment">// the process reaper will kill the JVM process (to ensure easy failure detection)</span></span><br><span class="line">      <span class="type">LOG</span>.debug(<span class="string">"Starting JobManager process reaper"</span>)</span><br><span class="line">      jobManagerSystem.actorOf(</span><br><span class="line">        <span class="type">Props</span>(</span><br><span class="line">          classOf[<span class="type">ProcessReaper</span>],</span><br><span class="line">          jobManager,</span><br><span class="line">          <span class="type">LOG</span>.logger,</span><br><span class="line">          <span class="type">RUNTIME_FAILURE_RETURN_CODE</span>),</span><br><span class="line">        <span class="string">"JobManager_Process_Reaper"</span>)</span><br><span class="line"></span><br><span class="line">      <span class="comment">// bring up a local task manager, if needed</span></span><br><span class="line">      <span class="keyword">if</span> (executionMode == <span class="type">JobManagerMode</span>.<span class="type">LOCAL</span>) &#123;</span><br><span class="line">        <span class="type">LOG</span>.info(<span class="string">"Starting embedded TaskManager for JobManager's LOCAL execution mode"</span>)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">val</span> taskManagerActor = <span class="type">TaskManager</span>.startTaskManagerComponentsAndActor(</span><br><span class="line">          configuration,</span><br><span class="line">          <span class="type">ResourceID</span>.generate(),</span><br><span class="line">          jobManagerSystem,</span><br><span class="line">          listeningAddress,</span><br><span class="line">          <span class="type">Some</span>(<span class="type">TaskManager</span>.<span class="type">TASK_MANAGER_NAME</span>),</span><br><span class="line">          <span class="type">None</span>,</span><br><span class="line">          localTaskManagerCommunication = <span class="literal">true</span>,</span><br><span class="line">          classOf[<span class="type">TaskManager</span>])</span><br><span class="line"></span><br><span class="line">        <span class="type">LOG</span>.debug(<span class="string">"Starting TaskManager process reaper"</span>)</span><br><span class="line">        jobManagerSystem.actorOf(</span><br><span class="line">          <span class="type">Props</span>(</span><br><span class="line">            classOf[<span class="type">ProcessReaper</span>],</span><br><span class="line">            taskManagerActor,</span><br><span class="line">            <span class="type">LOG</span>.logger,</span><br><span class="line">            <span class="type">RUNTIME_FAILURE_RETURN_CODE</span>),</span><br><span class="line">          <span class="string">"TaskManager_Process_Reaper"</span>)</span><br><span class="line">      &#125;</span><br><span class="line">	  ...</span><br><span class="line">	  ...</span><br><span class="line"></span><br><span class="line">      (jobManagerSystem, jobManager, archive, webMonitor, resourceManager)</span><br><span class="line">    &#125;</span><br><span class="line">    ...</span><br><span class="line">    ...</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
+<p>这里可以看到startActorSystemAndJobManagerActors方法中利用AkkaUtils和flinkConfig创建了全局的ActorSystem，AkkaUtils也是对Actor创建的简单封装，这里不再赘述。紧接着利用刚创建的jobManagerSystem和jobManager的类名：jobManagerClass创建jobManager。除了jobManager以外，该方法中还创建了Flink的其他重要模块，从返回值中可以清楚看到。另外本地模式启动方式下，还会创建本地的启动本地的taskManagerActor。继续深入到startJobManagerActors，该方法接收jobManagerSystem等参数，创建jobManager和archive并返回：</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">startJobManagerActors</span></span>(</span><br><span class="line">      configuration: <span class="type">Configuration</span>,</span><br><span class="line">      actorSystem: <span class="type">ActorSystem</span>,</span><br><span class="line">      jobManagerActorName: <span class="type">Option</span>[<span class="type">String</span>],</span><br><span class="line">      archiveActorName: <span class="type">Option</span>[<span class="type">String</span>],</span><br><span class="line">      jobManagerClass: <span class="type">Class</span>[_ &lt;: <span class="type">JobManager</span>],</span><br><span class="line">      archiveClass: <span class="type">Class</span>[_ &lt;: <span class="type">MemoryArchivist</span>])</span><br><span class="line">    : (<span class="type">ActorRef</span>, <span class="type">ActorRef</span>) = &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">val</span> (executorService: <span class="type">ExecutorService</span>,</span><br><span class="line">    instanceManager,</span><br><span class="line">    scheduler,</span><br><span class="line">    libraryCacheManager,</span><br><span class="line">    restartStrategy,</span><br><span class="line">    timeout,</span><br><span class="line">    archiveCount,</span><br><span class="line">    leaderElectionService,</span><br><span class="line">    submittedJobGraphs,</span><br><span class="line">    checkpointRecoveryFactory,</span><br><span class="line">    savepointStore,</span><br><span class="line">    jobRecoveryTimeout,</span><br><span class="line">    metricsRegistry) = createJobManagerComponents(</span><br><span class="line">      configuration,</span><br><span class="line">      <span class="type">None</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">val</span> archiveProps = <span class="type">Props</span>(archiveClass, archiveCount)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// start the archiver with the given name, or without (avoid name conflicts)</span></span><br><span class="line">    <span class="keyword">val</span> archive: <span class="type">ActorRef</span> = archiveActorName <span class="keyword">match</span> &#123;</span><br><span class="line">      <span class="keyword">case</span> <span class="type">Some</span>(actorName) =&gt; actorSystem.actorOf(archiveProps, actorName)</span><br><span class="line">      <span class="keyword">case</span> <span class="type">None</span> =&gt; actorSystem.actorOf(archiveProps)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">val</span> jobManagerProps = <span class="type">Props</span>(</span><br><span class="line">      jobManagerClass,</span><br><span class="line">      configuration,</span><br><span class="line">      executorService,</span><br><span class="line">      instanceManager,</span><br><span class="line">      scheduler,</span><br><span class="line">      libraryCacheManager,</span><br><span class="line">      archive,</span><br><span class="line">      restartStrategy,</span><br><span class="line">      timeout,</span><br><span class="line">      leaderElectionService,</span><br><span class="line">      submittedJobGraphs,</span><br><span class="line">      checkpointRecoveryFactory,</span><br><span class="line">      savepointStore,</span><br><span class="line">      jobRecoveryTimeout,</span><br><span class="line">      metricsRegistry)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">val</span> jobManager: <span class="type">ActorRef</span> = jobManagerActorName <span class="keyword">match</span> &#123;</span><br><span class="line">      <span class="keyword">case</span> <span class="type">Some</span>(actorName) =&gt; actorSystem.actorOf(jobManagerProps, actorName)</span><br><span class="line">      <span class="keyword">case</span> <span class="type">None</span> =&gt; actorSystem.actorOf(jobManagerProps)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    (jobManager, archive)</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+<p>这里首先createJobManagerComponents方法创建了jobManager的重要组成模块，包括了存储、备份等策略的组件实现，还包括以后会遇到的scheduler、submittedJobGraphs，分别负责job的调度和作业的提交，这里暂不深入。<br>jobManagerActor已经成功创建，但是Scala中一个Actor会继承Actor类，并重写receive方法接受信息并处理，由此可以发现.JobManager类继承FlinkActor，再看FlinkActor:<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">trait</span> <span class="title">FlinkActor</span> <span class="keyword">extends</span> <span class="title">Actor</span> </span>&#123;</span><br><span class="line">  <span class="keyword">val</span> log: <span class="type">Logger</span></span><br><span class="line"></span><br><span class="line">  <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">receive</span></span>: <span class="type">Receive</span> = handleMessage</span><br><span class="line"></span><br><span class="line">  <span class="comment">/** Handle incoming messages</span></span><br><span class="line"><span class="comment">    * @return</span></span><br><span class="line"><span class="comment">    */</span></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">handleMessage</span></span>: <span class="type">Receive</span> </span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">decorateMessage</span></span>(message: <span class="type">Any</span>): <span class="type">Any</span> = &#123;</span><br><span class="line">    message</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>可以看到receive方法被重写，并赋值为handleMessage，所以处理消息的操作被放在FlinkActor子类Jobmanager的handleMessage方法中：<br><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">handleMessage</span></span>: <span class="type">Receive</span> = &#123;</span><br><span class="line"></span><br><span class="line">    ...</span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">case</span> <span class="type">SubmitJob</span>(jobGraph, listeningBehaviour) =&gt;</span><br><span class="line">      <span class="keyword">val</span> client = sender()</span><br><span class="line"></span><br><span class="line">      <span class="keyword">val</span> jobInfo = <span class="keyword">new</span> <span class="type">JobInfo</span>(client, listeningBehaviour, <span class="type">System</span>.currentTimeMillis(),</span><br><span class="line">        jobGraph.getSessionTimeout)</span><br><span class="line"></span><br><span class="line">      submitJob(jobGraph, jobInfo)</span><br><span class="line"></span><br><span class="line">    ...</span><br><span class="line">    ...</span><br></pre></td></tr></table></figure></p>
+<p>handleMessage方法中处理的消息很多，包括了诸如作业恢复，leader决策，TM注册，作业的提交、恢复与取消，这里暂时只关注消息SubmitJob(jobGraph, listeningBehaviour)，消息的定义很简单，不再追溯。而SubmitJob消息的主要获取Client传来的jobGraph以及listeningBehaviour。Flink的作业最后都会抽象为jobGraph交给JM处理。关于jobGraph的生成，会在后面的Job生成的过程中进行分析。<br>JM对job的处理函数submitJob(jobGraph, jobInfo)，参数jobInfo中包括了Client端的ActorRef，用以Job处理结果的返回，该函数中实现了JM对作业的提交与处理的细节，为突出重点，放在作业处理部分分析。但从该方法的注释来看：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line">  * Submits a job to the job manager. The job is registered at the libraryCacheManager which</span><br><span class="line">  * creates the job&apos;s class loader. The job graph is appended to the corresponding execution</span><br><span class="line">  * graph and the execution vertices are queued for scheduling.</span><br><span class="line">  *</span><br><span class="line">  * @param jobGraph representing the Flink job</span><br><span class="line">  * @param jobInfo the job info</span><br><span class="line">  * @param isRecovery Flag indicating whether this is a recovery or initial submission</span><br><span class="line">  */</span><br></pre></td></tr></table></figure></p>
+<p>在该方法中将Job注册到libraryCacheManager，并将Job执行饿的DAG加入到调度队列。</p>
+<h4 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h4><p>这里仅仅就JM Actor的创建过程对flink的源码进行了分析，主要了解到flink系统JM部分ActorSystem的组织方式，main函数最终创建JM 监听客户端的消息，并对作业进行调度和Job容错处理，最终交由TaskManager进行处理。对于具体的调度和处理策略，JM和TM的通信会在以后进行分析。接下来首先看Client端的逻辑。</p>
+
+        </div>
+      </article>
+    </div>
+    <!-- Comments -->
+    <div class="container">
+      
+<section id="comment">
+  <!-- <h1 class="title">留言</h1> -->
+
+  
+</section>
+
+
+    </div>
+    <!-- Pre or Next -->
+    <div class="nav-links">
+      
+        <div class="nav-previous">
+          <a href="/2018/07/27/hello-world/" rel="prev"><span class="meta-arraw meta-arraw-left"></span> 上一页</a>
+        </div>
+      
+      
+    </div>
+
+  </div>
+</div>
+
+
+  <!-- Footer -->
+  <!-- Footer-widgets -->
+<div class="footer-widgets">
+  <div class="row inside-wrapper">
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">关于本站</h1>
+        <div class="custom-widget-content">
+          
+          <p align="left">分享日常学习，传播核心价值观，传播正能量。</p>
+        </div>
+      </aside>
+    </div>
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">与我联系</h1>
+        <div class="widget-text">
+          
+            
+              <a href="https://github.com/zqhZY" class="icon icon-github" target="_blank">github</a>
+            
+              <a href="zqingheng@163.com" class="icon icon-mail" target="_blank">mail</a>
+            
+          
+        </div>
+      </aside>
+    </div>
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">站内搜索</h1>
+        <div class="widget-text">
+          <form onSubmit="return appDaily.submitSearch('')">
+            <p>
+              <input type="text" placeholder="search..." id="homeSearchInput">
+            </p>
+            <!-- <input type="submit" value="GO"> -->
+          </form>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+<!-- Footer -->
+<footer class="site-info">
+  <p>
+    <span>A Note &copy; 2018</span>
+    
+      <span class="split">|</span>
+      <span>Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> with Theme <a href="https://github.com/GallenHu/hexo-theme-Daily" target="_blank">Daily</a></span>
+    
+  </p>
+</footer>
+
+
+  <!-- After footer scripts -->
+  <!-- scripts -->
+<script src="/js/app.js"></script>
+
+
+
+
+
+</body>
+
+</html>
