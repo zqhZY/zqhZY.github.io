@@ -241,30 +241,29 @@
   <article class="post">
     
     <h1 class="entry-title">
-      <a href="/2017/12/22/Rasa-Core源码之Policy训练/" rel="bookmark">
-        Rasa Core源码之Policy训练
+      <a href="/2018/04/01/Pointer-Networks/" rel="bookmark">
+        Pointer Networks
       </a>
     </h1>
     
     <div class="entry-content">
       <p>
-        <p><img src="http://upload-images.jianshu.io/upload_images/2159902-5460aca1aba1bafe.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="context.png"></p>
-<p>上下文的联系与理解是对话系统中重要的一块，直接影响与机器人对话的体验。最近接触了RASA系列，包括自然语言理解的rasa nlu和对话管理的rasa core。简单方便的实现一个任务对话系统的同时，也好奇其内部实现使用的技术。花时间读了Rasa Core关于上下文理解部分的源码，后面有机会再把rasa对话系统的其他模块的实现也做一个源码的分析。<br>
+        <p>很多时候使用seq2seq来解决序列生成问题，但seq2seq模型往往需要预先定义好输出集合的大小，即输出序列可能的取值范围。由此带来一个问题，如果期望生成的序列大小不确定，比如NLP中文本摘要任务，期望提取的摘要中可能包含“人名”和“地名”，而这种类型的词汇往往很可能不在训练语料的词表中出现，这种情况，seq2seq往往无法满足生成要求。Pointer Networks模型则是为了解决此类问题提出：</p>
       </p>
     </div>
     
 
     <p class="posted-on">
-    2017-12-22
+    2018-04-01
     </p>
     <div class="tags-links">
       
-      <a href="/tags/NLP/" rel="tag">
-        NLP
+      <a href="/tags/DNN/" rel="tag">
+        DNN
       </a>
       
-      <a href="/tags/chatbot/" rel="tag">
-        chatbot
+      <a href="/tags/NLP/" rel="tag">
+        NLP
       </a>
       
     </div>
@@ -282,23 +281,21 @@
   <article class="post">
     
     <h1 class="entry-title">
-      <a href="/2017/12/03/基于rasa的对话系统搭建（下）/" rel="bookmark">
-        基于rasa的对话系统搭建（下）
+      <a href="/2017/12/22/Rasa-Core源码之Policy训练/" rel="bookmark">
+        Rasa Core源码之Policy训练
       </a>
     </h1>
     
     <div class="entry-content">
       <p>
-        <p>基于上文训练的自然理解模型，这里介绍使用rasa core 的online leaning 进行对话决策的训练，在进行对话模块训练之前，需要准备两个文件：</p>
-<ul>
-<li>domain.yml # 定义对话所有的意图、槽、实体和系统可能采取的action</li>
-<li>story.md # 对话训练语料， 开始可以用于预训练对话模型，后期加入在线学习过程中生成的语料，更新完善。
+        <p><img src="http://upload-images.jianshu.io/upload_images/2159902-5460aca1aba1bafe.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="context.png"></p>
+<p>上下文的联系与理解是对话系统中重要的一块，直接影响与机器人对话的体验。最近接触了RASA系列，包括自然语言理解的rasa nlu和对话管理的rasa core。简单方便的实现一个任务对话系统的同时，也好奇其内部实现使用的技术。花时间读了Rasa Core关于上下文理解部分的源码，后面有机会再把rasa对话系统的其他模块的实现也做一个源码的分析。<br>
       </p>
     </div>
     
 
     <p class="posted-on">
-    2017-12-03
+    2017-12-22
     </p>
     <div class="tags-links">
       
