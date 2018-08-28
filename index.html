@@ -122,6 +122,15 @@
       </a>
     </h1>
     
+    <div class="entry-content">
+      <p>
+        <p>神经网络应用于IR相比于传统方法有了很好的提升，但是目前的方案都认为所有的query应该公用一个match function。如DSSM，先分别对query和doc做深层表示，然后两个表示的相似度作为match function，再如MatchPyramid和ARC-II，先对query和doc计算相似度矩阵，然后做深层卷积、pooling，最后接全连接输出做match function。<br>本文认为，实际上用户的query有时需要结合不同层次的匹配信息，有时候需要底层的word级别的match，有时更需要上层概念级别的匹配。因此提出多层抽象化的卷积模型（(MACM）来做文本匹配，主要贡献：</p>
+<ul>
+<li>使用网络中多个抽象层的信息做match，该方法可很容易的应用在其他深度模型中。</li>
+</ul>
+      </p>
+    </div>
+    
 
     <p class="posted-on">
     2018-08-28

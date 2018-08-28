@@ -141,8 +141,9 @@
         <div class="entry-content has_line_number">
           <p>神经网络应用于IR相比于传统方法有了很好的提升，但是目前的方案都认为所有的query应该公用一个match function。如DSSM，先分别对query和doc做深层表示，然后两个表示的相似度作为match function，再如MatchPyramid和ARC-II，先对query和doc计算相似度矩阵，然后做深层卷积、pooling，最后接全连接输出做match function。<br>本文认为，实际上用户的query有时需要结合不同层次的匹配信息，有时候需要底层的word级别的match，有时更需要上层概念级别的匹配。因此提出多层抽象化的卷积模型（(MACM）来做文本匹配，主要贡献：</p>
 <ul>
-<li>使用网络中多个抽象层的信息做match，该方法可很容易的应用在其他深度模型中。<br>&lt;! –more –&gt;</li>
+<li>使用网络中多个抽象层的信息做match，该方法可很容易的应用在其他深度模型中。</li>
 </ul>
+<a id="more"></a>
 <h3 id="模型："><a href="#模型：" class="headerlink" title="模型："></a>模型：</h3><p>文章提到在文本匹配任务中，interaction-based模型(如MatchPyramid)被认为优于representation-based模型（如CDSSM），因此论文的基础是建立在interaction-based模型的基础之上。文章提出的模型思路也比较简单，不同于只用最终的表示输出做match层（最后的全连接网络）的输入，文章使用模型不同层级的信息，从底层的词级别的匹配信息到上层越来越抽象的匹配信息，最终加权作为match层的输入。</p>
 <p>整个模型结构如图，实现了多层交互矩阵，同时得到多个匹配得分，最后做加权和得到最终得分：</p>
 <p><img src="https://upload-images.jianshu.io/upload_images/2159902-d718f1cb1045f64a.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="Multi-level Abstraction Convolutional Model"></p>
