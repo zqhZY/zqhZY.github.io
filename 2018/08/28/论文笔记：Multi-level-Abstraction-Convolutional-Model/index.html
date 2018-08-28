@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<!-- Head tag -->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+  <!--Description-->
+  
+
+  <!--Author-->
+  
+  <meta name="author" content="Zico">
+  
+
+  <!--Open Graph Title-->
+  
+      <meta property="og:title" content="论文笔记：Multi-level Abstraction Convolutional Model"/>
+  
+  <!--Open Graph Description-->
+  
+  <!--Open Graph Site Name-->
+  <meta property="og:site_name" content="A Note"/>
+  <!--Type page-->
+  
+      <meta property="og:type" content="article" />
+  
+  <!--Page Cover-->
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <!-- Title -->
+  
+  <title>论文笔记：Multi-level Abstraction Convolutional Model - A Note</title>
+
+
+  <link rel="shortcut icon" href="https://hexo.io/icon/favicon-96x96.png">
+
+  <!-- Custom CSS/Sass -->
+  <link rel="stylesheet" href="/css/style.css">
+
+  <!----------------------------
+  https://github.com/GallenHu/hexo-theme-Daily
+
+ _____            _   _
+|  __ \          (_) | |
+| |  | |   __ _   _  | |  _   _
+| |  | |  / _` | | | | | | | | |
+| |__| | | (_| | | | | | | |_| |
+|_____/   \__,_| |_| |_|  \__, |
+                          __/ |
+                         |___/
+
+    --------------------------->
+
+</head>
+
+
+<body>
+
+  <!-- Nav -->
+  <header class="site-header">
+  <div class="header-inside">
+    <div class="logo">
+      <a href="/" rel="home">
+        
+        <img src="https://hexo.io/logo.svg" alt="A Note" height="60">
+        
+      </a>
+    </div>
+    <!-- Navigation -->
+    <nav class="navbar">
+      <!-- Collect the nav links, forms, and other content for toggling -->
+      <div class="collapse">
+        <ul class="navbar-nav">
+          
+          
+            <li>
+              <a href="/.">
+                
+                  Home
+                
+              </a>
+            </li>
+          
+            <li>
+              <a href="/archives">
+                
+                  Archive
+                
+              </a>
+            </li>
+          
+        </ul>
+      </div>
+      <!-- /.navbar-collapse -->
+    </nav>
+    <div class="button-wrap">
+      <button class="menu-toggle">Primary Menu</button>
+    </div>
+  </div>
+</header>
+
+
+  <!-- Main Content -->
+  <div class="content-area">
+  <div class="post">
+    <!-- Post Content -->
+    <div class="container">
+      <article>
+        <!-- Title date & tags -->
+        <div class="post-header">
+          <h1 class="entry-title">
+            论文笔记：Multi-level Abstraction Convolutional Model
+            
+          </h1>
+          <p class="posted-on">
+          2018-08-28
+          </p>
+          <div class="tags-links">
+            
+              
+                <a href="/tags/DNN/" rel="tag">
+                  DNN
+                </a>
+              
+                <a href="/tags/NLP/" rel="tag">
+                  NLP
+                </a>
+              
+                <a href="/tags/语义匹配/" rel="tag">
+                  语义匹配
+                </a>
+              
+            
+          </div>
+        </div>
+        <!-- Post Main Content -->
+        <div class="entry-content has_line_number">
+          <p>神经网络应用于IR相比于传统方法有了很好的提升，但是目前的方案都认为所有的query应该公用一个match function。如DSSM，先分别对query和doc做深层表示，然后两个表示的相似度作为match function，再如MatchPyramid和ARC-II，先对query和doc计算相似度矩阵，然后做深层卷积、pooling，最后接全连接输出做match function。<br>本文认为，实际上用户的query有时需要结合不同层次的匹配信息，有时候需要底层的word级别的match，有时更需要上层概念级别的匹配。因此提出多层抽象化的卷积模型（(MACM）来做文本匹配，主要贡献：</p>
+<ul>
+<li>使用网络中多个抽象层的信息做match，该方法可很容易的应用在其他深度模型中。<br>&lt;! –more –&gt;</li>
+</ul>
+<h3 id="模型："><a href="#模型：" class="headerlink" title="模型："></a>模型：</h3><p>文章提到在文本匹配任务中，interaction-based模型(如MatchPyramid)被认为优于representation-based模型（如CDSSM），因此论文的基础是建立在interaction-based模型的基础之上。文章提出的模型思路也比较简单，不同于只用最终的表示输出做match层（最后的全连接网络）的输入，文章使用模型不同层级的信息，从底层的词级别的匹配信息到上层越来越抽象的匹配信息，最终加权作为match层的输入。</p>
+<p>整个模型结构如图，实现了多层交互矩阵，同时得到多个匹配得分，最后做加权和得到最终得分：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/2159902-d718f1cb1045f64a.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="Multi-level Abstraction Convolutional Model"></p>
+<p>模型的基本结构与MatchPyramid结构类似，不同的是使用门机制，控制多个卷积层的匹配得分，做分数的聚合，主要有两类scale值的计算：S和M，其中S_i为第i层的的相似度得分，M_i用于计算第i层得分所占的权重，Aggregating Gate包括一个可学习的权重层，然后做softmax归一得到每层得分的权重，最后多层的得分按权重加权求和得到最终匹配得分。</p>
+<p>而M的计算方法也比较直觉，对M_0，取相似度矩阵每行的最大值，然后相加得到；</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/2159902-52975303bfcc1d39.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<p>其中u为query的term个数，m为doc的term个数。</p>
+<p> 而M_i （i &gt; 0）因为可能有多个卷积后得到的Feature Map，所以对每个Feature Map做与M_0相同的操作，而后按Feature Map的个数取平均，得到最终M_i。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/2159902-34c82508057cb7f4.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<p>K为第i层Feature Map的个数。最后每层权重的计算：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/2159902-903a01e26f834a1c.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<p>其中alpha为每层的权重，是可训练的参数。</p>
+<p>最后，模型的训练以pair对的方式，训练样本为(Q,D+,D−)，目标拉大S (Q,D+)和S (Q,D-)的差距，因此使用了rank loss:</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/2159902-e8187f29328a0d5b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<h3 id="实验"><a href="#实验" class="headerlink" title="实验"></a>实验</h3><p>实验首先用BM25算法对语料库做rank，然后作为模型的训练样本训练模型，对每个query随机选择两条doc作为训练样本，高BM25得分的做正样本，低得分的做负样本。训练好模型后，对BM25的rank结果做rerank，实验证明模型重新排序的结果，优于原来的BM25的rank结果。具体的过程和结果可参考论文中的描述。</p>
+<p>参考文献：<br><a href="https://dl.acm.org/citation.cfm?id=3209978.3210123" target="_blank" rel="noopener">Multi-level Abstraction Convolutional Model with Weak Supervision for Information Retrieval</a></p>
+<h4 id="原创文章，转载注明出处。"><a href="#原创文章，转载注明出处。" class="headerlink" title="原创文章，转载注明出处。"></a>原创文章，转载注明出处。</h4><p>更多关注公众号：<br><img src="https://upload-images.jianshu.io/upload_images/2159902-e28220521b7ef499.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="wechat"></p>
+
+        </div>
+      </article>
+    </div>
+    <!-- Comments -->
+    <div class="container">
+      
+<section id="comment">
+  <!-- <h1 class="title">留言</h1> -->
+
+  
+</section>
+
+
+    </div>
+    <!-- Pre or Next -->
+    <div class="nav-links">
+      
+      
+        <div class="nav-next">
+          <a href="/2018/06/15/强化学习应用：实体关系提取/" rel="prev">下一页 <span class="meta-arraw meta-arraw-right"></span></a>
+        </div>
+      
+    </div>
+
+  </div>
+</div>
+
+
+  <!-- Footer -->
+  <!-- Footer-widgets -->
+<div class="footer-widgets">
+  <div class="row inside-wrapper">
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">关于本站</h1>
+        <div class="custom-widget-content">
+          
+          <p align="left">分享日常学习，传播核心价值观，传播正能量。</p>
+        </div>
+      </aside>
+    </div>
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">与我联系</h1>
+        <div class="widget-text">
+          
+            
+              <a href="https://github.com/zqhZY" class="icon icon-github" target="_blank">github</a>
+            
+              <a href="zqingheng@163.com" class="icon icon-mail" target="_blank">mail</a>
+            
+          
+        </div>
+      </aside>
+    </div>
+    <div class="col-1-3">
+      <aside>
+        <h1 class="widget-title">站内搜索</h1>
+        <div class="widget-text">
+          <form onSubmit="return appDaily.submitSearch('')">
+            <p>
+              <input type="text" placeholder="search..." id="homeSearchInput">
+            </p>
+            <!-- <input type="submit" value="GO"> -->
+          </form>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+<!-- Footer -->
+<footer class="site-info">
+  <p>
+    <span>A Note &copy; 2018</span>
+    
+      <span class="split">|</span>
+      <span>Powered by <a href="https://hexo.io/" target="_blank">Hexo</a> with Theme <a href="https://github.com/GallenHu/hexo-theme-Daily" target="_blank">Daily</a></span>
+    
+  </p>
+</footer>
+
+
+  <!-- After footer scripts -->
+  <!-- scripts -->
+<script src="/js/app.js"></script>
+
+
+
+
+
+</body>
+
+</html>
